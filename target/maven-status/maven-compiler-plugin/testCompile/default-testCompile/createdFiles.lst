@@ -1,5 +1,5 @@
-org/springframework/samples/petclinic/web/PetTypeFormatterTests$2.class
 org/springframework/samples/petclinic/service/ClinicServiceSpringDataJpaTests.class
+org/springframework/samples/petclinic/web/PetTypeFormatterTests$2.class
 org/springframework/samples/petclinic/model/ValidatorTests.class
 org/springframework/samples/petclinic/service/ClinicServiceJdbcTests.class
 org/springframework/samples/petclinic/web/VetControllerTests.class
