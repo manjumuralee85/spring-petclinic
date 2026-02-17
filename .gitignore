@@ -1,0 +1,22 @@
+
+# Build artifacts
+# IDE
+# Migration backup
+# OpenRewrite
+# Spring Boot specific
+*.class
+*.ear
+*.iml
+*.jar
+*.war
+.classpath
+.idea/
+.migration-backup/
+.mvn/
+.project
+.rewrite/
+.settings/
+mvnw
+mvnw.cmd
+rewrite.patch
+target/
