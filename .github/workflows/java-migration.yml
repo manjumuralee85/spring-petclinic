@@ -50,11 +50,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create migration branch
+      - name: Set branch name
         run: |
           BRANCH_NAME="migration/java-${{ github.event.inputs.target_java_version }}-$(date +%Y%m%d-%H%M%S)"
           echo "MIGRATION_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
-          git checkout -b $BRANCH_NAME
 
       - name: Run Migration to Java ${{ github.event.inputs.target_java_version }}
         run: |
@@ -226,21 +225,8 @@ jobs:
             echo "No changes to commit"
             echo "HAS_CHANGES=false" >> $GITHUB_ENV
           else
-            git commit -m "🚀 Migrate to Java ${{ github.event.inputs.target_java_version }} with updated dependencies
-
-          - Upgraded from Java 8 to Java ${{ github.event.inputs.target_java_version }}
-          - Updated Spring Boot and dependencies
-          - Applied OpenRewrite migration recipes
-          - Generated migration report
-          
-          Co-authored-by: OpenRewrite <info@moderne.io>"
             echo "HAS_CHANGES=true" >> $GITHUB_ENV
           fi
-
-      - name: Push Changes
-        if: env.HAS_CHANGES == 'true'
-        run: |
-          git push origin ${{ env.MIGRATION_BRANCH }}
 
       - name: Create Pull Request
         if: env.HAS_CHANGES == 'true'
@@ -248,6 +234,15 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.MIGRATION_BRANCH }}
+          commit-message: |
+            🚀 Migrate to Java ${{ github.event.inputs.target_java_version }} with updated dependencies
+            
+            - Upgraded from Java 8 to Java ${{ github.event.inputs.target_java_version }}
+            - Updated Spring Boot and dependencies
+            - Applied OpenRewrite migration recipes
+            - Generated migration report
+            
+            Co-authored-by: OpenRewrite <info@moderne.io>
           title: "🚀 Migrate Spring PetClinic to Java ${{ github.event.inputs.target_java_version }}"
           body: |
             ## 🎯 Automated Java Migration
@@ -345,11 +340,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create migration branch
+      - name: Set branch name
         run: |
           BRANCH_NAME="migration/java-${{ matrix.java_version }}"
           echo "MIGRATION_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
-          git checkout -b $BRANCH_NAME 2>/dev/null || git checkout $BRANCH_NAME
 
       - name: Run Java Migration
         run: |
@@ -378,21 +372,23 @@ jobs:
           mvn test
         continue-on-error: true
 
-      - name: Commit and Push
+      - name: Commit Changes
         run: |
           git add -A
           if git diff --staged --quiet; then
             echo "No changes to commit"
+            echo "HAS_CHANGES=false" >> $GITHUB_ENV
           else
-            git commit -m "Sequential migration: ${{ matrix.step_name }}"
-            git push origin ${{ env.MIGRATION_BRANCH }} --force
+            echo "HAS_CHANGES=true" >> $GITHUB_ENV
           fi
 
       - name: Create Pull Request
+        if: env.HAS_CHANGES == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.MIGRATION_BRANCH }}
+          commit-message: "Sequential migration: ${{ matrix.step_name }}"
           title: "Sequential Migration: ${{ matrix.step_name }}"
           body: |
             ## Sequential Migration Step
