@@ -146,6 +146,9 @@ jobs:
       - name: Check for changes
         id: check_changes
         run: |
+          # Reset the workflow file to avoid committing it
+          git checkout HEAD -- .github/workflows/java-migration.yml 2>/dev/null || true
+          
           if [ -n "$(git status --porcelain)" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "✓ Changes detected:"
