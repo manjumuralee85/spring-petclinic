@@ -1,0 +1,16 @@
+
+# Build artifacts (should not be in PR)
+# IDE files
+# OpenRewrite
+*.class
+*.ear
+*.iml
+*.jar
+*.war
+.classpath
+.idea/
+.project
+.rewrite/
+.settings/
+rewrite.patch
+target/
