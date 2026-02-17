@@ -1,0 +1,375 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.SpringFrameworkToSpringBootComplete
+displayName: Complete Spring Framework to Spring Boot Conversion
+description: Complete automated conversion from Spring Framework 7.0 to Spring Boot 3.x
+recipeList:
+  # Phase 1: POM Conversion
+  - com.petclinic.boot.ConvertToSpringBootParent
+  - com.petclinic.boot.ConvertToSpringBootStarters
+  
+  # Phase 2: Configuration Migration
+  - com.petclinic.boot.MigrateSpringConfiguration
+  
+  # Phase 3: Code Updates
+  - com.petclinic.boot.UpdateApplicationCode
+  
+  # Phase 4: Testing Updates
+  - com.petclinic.boot.UpdateTestingFramework
+  
+  # Phase 5: Cleanup and Best Practices
+  - com.petclinic.boot.ApplySpringBootBestPractices
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.ConvertToSpringBootParent
+displayName: Convert POM to Spring Boot Parent
+description: Add Spring Boot parent POM and update project configuration
+recipeList:
+  # Add Spring Boot parent
+  - org.openrewrite.maven.AddManagedDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-dependencies
+      version: 3.3.x
+      scope: import
+      type: pom
+  
+  # Update project packaging (will need manual change WAR->JAR)
+  - org.openrewrite.maven.ChangePropertyValue:
+      key: packaging
+      newValue: jar
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.ConvertToSpringBootStarters
+displayName: Convert to Spring Boot Starters
+description: Replace individual Spring dependencies with Boot starters
+recipeList:
+  # Remove old Spring Framework dependencies and add starters
+  # Web Starter (replaces spring-webmvc, tomcat, etc.)
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-web
+      version: LATEST
+      onlyIfUsing: org.springframework.web.*
+  
+  # Data JPA Starter (replaces spring-data-jpa, hibernate, etc.)
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-data-jpa
+      version: LATEST
+      onlyIfUsing: org.springframework.data.*
+  
+  # Cache Starter
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-cache
+      version: LATEST
+      onlyIfUsing: org.springframework.cache.*
+  
+  # Validation Starter
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-validation
+      version: LATEST
+      onlyIfUsing: jakarta.validation.*
+  
+  # Test Starter
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-test
+      version: LATEST
+      scope: test
+      onlyIfUsing: org.junit.*
+  
+  # DevTools (optional but recommended)
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-devtools
+      version: LATEST
+      scope: runtime
+      optional: true
+  
+  # Actuator for monitoring
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-actuator
+      version: LATEST
+
+  # Remove redundant dependencies (now provided by starters)
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework
+      artifactId: spring-webmvc
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework
+      artifactId: spring-jdbc
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework
+      artifactId: spring-orm
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework
+      artifactId: spring-context-support
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework
+      artifactId: spring-oxm
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework
+      artifactId: spring-test
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.springframework.data
+      artifactId: spring-data-jpa
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.MigrateSpringConfiguration
+displayName: Migrate Spring Configuration
+description: Convert XML and programmatic configuration to Spring Boot conventions
+recipeList:
+  # Migrate to Spring Boot auto-configuration
+  - org.openrewrite.java.spring.boot3.SpringBoot3BestPractices
+  
+  # Remove @EnableWebMvc (Boot auto-configures this)
+  - org.openrewrite.java.spring.framework.RemoveEnableWebMvc
+  
+  # Update component scanning
+  - org.openrewrite.java.spring.framework.BeanMethodsNotPublic
+  
+  # Migrate properties
+  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_3
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.UpdateApplicationCode
+displayName: Update Application Code for Spring Boot
+description: Update Java code to Spring Boot conventions and best practices
+recipeList:
+  # Use @SpringBootApplication instead of multiple annotations
+  - org.openrewrite.java.spring.boot2.SpringBootApplication
+  
+  # Update REST controllers
+  - org.openrewrite.java.spring.framework.MigrateResponseStatusException
+  
+  # Update exception handling
+  - org.openrewrite.java.spring.framework.MigrateHandlerInterceptor
+  
+  # Update configuration properties
+  - org.openrewrite.java.spring.boot2.ConvertToConfigurationProperties
+  
+  # Use constructor injection
+  - org.openrewrite.java.spring.framework.InjectingIntoPrivateFields
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.UpdateTestingFramework
+displayName: Update Testing for Spring Boot
+description: Migrate tests to Spring Boot Testing conventions
+recipeList:
+  # Use @SpringBootTest
+  - org.openrewrite.java.spring.boot2.SpringBootTestTest
+  
+  # Update JUnit 5
+  - org.openrewrite.java.testing.junit5.JUnit5BestPractices
+  
+  # Update Mockito
+  - org.openrewrite.java.testing.mockito.Mockito1to5Migration
+  
+  # Update AssertJ
+  - org.openrewrite.java.testing.assertj.JUnitToAssertj
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.ApplySpringBootBestPractices
+displayName: Apply Spring Boot Best Practices
+description: Apply modern Spring Boot patterns and best practices
+recipeList:
+  # Spring Boot 3.x best practices
+  - org.openrewrite.java.spring.boot3.SpringBoot3BestPractices
+  
+  # Use modern Java features
+  - org.openrewrite.java.migrate.lang.UseTextBlocks
+  - org.openrewrite.java.migrate.lang.UseVar
+  
+  # Code cleanup
+  - org.openrewrite.staticanalysis.CommonStaticAnalysis
+  - org.openrewrite.staticanalysis.FinalizePrivateFields
+  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables
+  - org.openrewrite.staticanalysis.RemoveUnusedPrivateFields
+  
+  # Formatting
+  - org.openrewrite.java.format.AutoFormat
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.WebConfiguration
+displayName: Update Web Configuration
+description: Convert Servlet/JSP configuration to Spring Boot conventions
+recipeList:
+  # Update view resolver configuration
+  - org.openrewrite.java.spring.framework.MigrateWebMvcConfigurer
+  
+  # Update servlet initialization
+  - org.openrewrite.java.spring.boot2.ServletInitializerToWebApplicationInitializer
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.DataSourceConfiguration
+displayName: Update DataSource Configuration
+description: Convert JDBC/JPA configuration to Spring Boot auto-configuration
+recipeList:
+  # Migrate to Boot's DataSource auto-config
+  - org.openrewrite.java.spring.framework.BeanMethodsNotPublic
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.CacheConfiguration
+displayName: Update Cache Configuration
+description: Convert cache configuration to Spring Boot conventions
+recipeList:
+  # Migrate to Boot's cache auto-config
+  - org.openrewrite.java.spring.framework.RemoveExplicitBeanAnnotation
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.SecurityUpdates
+displayName: Apply Security Updates
+description: Update security configuration for Spring Boot
+recipeList:
+  # If Spring Security is used
+  - org.openrewrite.java.spring.security6.UpgradeSpringSecurity_6_3
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.QuickConversion
+displayName: Quick Spring Boot Conversion (Core Only)
+description: Minimal conversion focusing on core Spring Boot features
+recipeList:
+  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3
+  - org.openrewrite.java.spring.boot3.SpringBoot3BestPractices
+  - org.openrewrite.java.testing.junit5.JUnit5BestPractices
+
+---
+# Custom recipe for PetClinic specific conversions
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.PetClinicCustomizations
+displayName: PetClinic-Specific Customizations
+description: Custom migrations specific to the PetClinic application structure
+recipeList:
+  # Update package structure if needed
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.springframework.samples.petclinic
+      newPackageName: org.springframework.samples.petclinic
+      recursive: true
+  
+  # Ensure proper annotation usage
+  - org.openrewrite.java.spring.framework.BeanMethodsNotPublic
+  
+  # Update repository interfaces
+  - org.openrewrite.java.spring.data.UpgradeSpringData_3_3
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.RemoveLegacyDependencies
+displayName: Remove Legacy Dependencies
+description: Remove dependencies that are now provided by Spring Boot or are obsolete
+recipeList:
+  # Remove explicit Tomcat dependencies (Boot provides these)
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.apache.tomcat
+      artifactId: tomcat-jdbc
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.apache.tomcat
+      artifactId: tomcat-jasper-el
+  
+  # Remove explicit SLF4J (Boot manages this)
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.slf4j
+      artifactId: slf4j-api
+  
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: ch.qos.logback
+      artifactId: logback-classic
+  
+  # Remove explicit AspectJ (Boot manages this)
+  - org.openrewrite.maven.RemoveDependency:
+      groupId: org.aspectj
+      artifactId: aspectjweaver
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.UpdatePlugins
+displayName: Update Maven Plugins
+description: Update Maven plugins for Spring Boot
+recipeList:
+  # Add Spring Boot Maven Plugin
+  - org.openrewrite.maven.AddPlugin:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-maven-plugin
+      version: LATEST
+  
+  # Remove plugins that are redundant with Spring Boot
+  - org.openrewrite.maven.RemovePlugin:
+      groupId: org.eclipse.jetty
+      artifactId: jetty-maven-plugin
+  
+  - org.openrewrite.maven.RemovePlugin:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-war-plugin
+  
+  - org.openrewrite.maven.RemovePlugin:
+      groupId: com.google.cloud.tools
+      artifactId: jib-maven-plugin
+
+---
+# Phased conversion approach
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.Phase1_POM
+displayName: Phase 1 - POM Conversion
+description: First phase - convert POM.xml structure
+recipeList:
+  - com.petclinic.boot.ConvertToSpringBootParent
+  - com.petclinic.boot.ConvertToSpringBootStarters
+  - com.petclinic.boot.RemoveLegacyDependencies
+  - com.petclinic.boot.UpdatePlugins
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.Phase2_Configuration
+displayName: Phase 2 - Configuration Migration
+description: Second phase - migrate configuration files
+recipeList:
+  - com.petclinic.boot.MigrateSpringConfiguration
+  - com.petclinic.boot.WebConfiguration
+  - com.petclinic.boot.DataSourceConfiguration
+  - com.petclinic.boot.CacheConfiguration
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.Phase3_Code
+displayName: Phase 3 - Code Updates
+description: Third phase - update application code
+recipeList:
+  - com.petclinic.boot.UpdateApplicationCode
+  - com.petclinic.boot.PetClinicCustomizations
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.Phase4_Testing
+displayName: Phase 4 - Testing Updates
+description: Fourth phase - update test code
+recipeList:
+  - com.petclinic.boot.UpdateTestingFramework
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.boot.Phase5_Polish
+displayName: Phase 5 - Polish and Best Practices
+description: Fifth phase - apply best practices and cleanup
+recipeList:
+  - com.petclinic.boot.ApplySpringBootBestPractices
