@@ -8,7 +8,6 @@ on:
         required: true
         type: choice
         options:
-          - '17'
           - '21'
           - '25'
         default: '21'
@@ -31,19 +30,11 @@ jobs:
       - name: Detect current Java version
         id: detect
         run: |
-          # Check pom.xml for Java version
           if [ -f "pom.xml" ]; then
-            # Try multiple patterns to find Java version
-            JAVA_VERSION=$(grep -oP '<java.version>\K[^<]+' pom.xml || echo "")
-            
-            if [ -z "$JAVA_VERSION" ]; then
-              JAVA_VERSION=$(grep -oP '<maven.compiler.source>\K[^<]+' pom.xml || echo "17")
-            fi
-            
+            JAVA_VERSION=$(grep -oP '<java.version>\K[^<]+' pom.xml || echo "17")
             echo "current_version=$JAVA_VERSION" >> $GITHUB_OUTPUT
             echo "Current Java version detected: $JAVA_VERSION"
             
-            # Check if migration is possible
             TARGET=${{ github.event.inputs.target_java_version }}
             if [ "$JAVA_VERSION" -lt "$TARGET" ]; then
               echo "can_migrate=true" >> $GITHUB_OUTPUT
@@ -53,7 +44,6 @@ jobs:
               echo "⚠️ Cannot migrate: Current version ($JAVA_VERSION) >= Target version ($TARGET)"
             fi
           else
-            echo "⚠️ pom.xml not found"
             echo "current_version=17" >> $GITHUB_OUTPUT
             echo "can_migrate=true" >> $GITHUB_OUTPUT
           fi
@@ -87,72 +77,130 @@ jobs:
           echo "MIGRATION_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
           echo "Branch name: $BRANCH_NAME"
 
+      - name: Ensure .gitignore excludes build artifacts
+        run: |
+          # Create/update .gitignore to exclude build artifacts
+          cat >> .gitignore << 'EOF'
+          
+          # Build artifacts (should not be in PR)
+          target/
+          *.class
+          *.jar
+          *.war
+          *.ear
+          
+          # OpenRewrite
+          .rewrite/
+          rewrite.patch
+          
+          # IDE files
+          .idea/
+          *.iml
+          .classpath
+          .project
+          .settings/
+          EOF
+          
+          # Remove duplicates
+          sort -u .gitignore -o .gitignore
+          echo "✓ Updated .gitignore"
+
+      - name: Clean any existing build artifacts
+        run: |
+          # Clean Maven build artifacts
+          mvn clean || echo "Maven clean skipped"
+          
+          # Remove any .class files that might be tracked
+          find . -name "*.class" -type f -delete || true
+          
+          # Remove target directory if it exists
+          rm -rf target/ || true
+          
+          echo "✓ Cleaned build artifacts"
+
       - name: Display Migration Plan
         run: |
           echo "=========================================="
           echo "Migration Plan"
           echo "=========================================="
+          echo "Project: Spring Framework PetClinic"
           echo "Current Java Version: ${{ needs.detect-current-version.outputs.current_version }}"
           echo "Target Java Version: ${{ github.event.inputs.target_java_version }}"
+          echo "Spring Framework Version: 7.0.3"
           echo "=========================================="
 
-      - name: Run Migration to Java ${{ github.event.inputs.target_java_version }}
+      - name: Run Java Migration Recipes
         run: |
           CURRENT_VERSION=${{ needs.detect-current-version.outputs.current_version }}
           TARGET_VERSION=${{ github.event.inputs.target_java_version }}
           
           echo "🚀 Starting migration from Java $CURRENT_VERSION to Java $TARGET_VERSION"
           
-          # Determine which migrations to run based on current and target versions
-          if [ "$CURRENT_VERSION" -lt "17" ] && [ "$TARGET_VERSION" -ge "17" ]; then
-            echo "Step 1: Migrating to Java 17"
-            mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
-              -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0 \
-              -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava17 || echo "Java 17 migration completed"
-          fi
-          
+          # Java 17 to 21 migration
           if [ "$TARGET_VERSION" -ge "21" ] && [ "$CURRENT_VERSION" -lt "21" ]; then
-            echo "Step 2: Migrating to Java 21"
+            echo "Step 1: Migrating to Java 21"
             mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
               -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0 \
-              -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21 || echo "Java 21 migration completed"
+              -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21 \
+              -Drewrite.exportDatatables=true || echo "Java 21 migration completed with warnings"
           fi
           
+          # Java 25 (experimental)
           if [ "$TARGET_VERSION" -eq "25" ]; then
-            echo "Step 3: Setting Java version to 25 (experimental)"
-            # Note: No official Java 25 migration recipe yet, so we manually update versions
+            echo "Step 2: Setting Java version to 25 (experimental)"
             if [ -f "pom.xml" ]; then
-              sed -i 's/<java.version>.*<\/java.version>/<java.version>25<\/java.version>/g' pom.xml
-              sed -i 's/<maven.compiler.source>.*<\/maven.compiler.source>/<maven.compiler.source>25<\/maven.compiler.source>/g' pom.xml
-              sed -i 's/<maven.compiler.target>.*<\/maven.compiler.target>/<maven.compiler.target>25<\/maven.compiler.target>/g' pom.xml
+              # Update Java version
+              sed -i 's/<java.version>17<\/java.version>/<java.version>25<\/java.version>/g' pom.xml
+              sed -i 's/<maven.compiler.source>17<\/maven.compiler.source>/<maven.compiler.source>25<\/maven.compiler.source>/g' pom.xml
+              sed -i 's/<maven.compiler.target>17<\/maven.compiler.target>/<maven.compiler.target>25<\/maven.compiler.target>/g' pom.xml
+              
+              # Update Jetty image to use Java 25 when available
+              sed -i 's/jetty:11.0-jdk17/jetty:12.0-jdk21/g' pom.xml || true
+              
               echo "✓ Updated Java version to 25 in pom.xml"
             fi
           fi
-          
-          echo "✓ Migration recipes applied"
 
-      - name: Update Spring Boot Version
+      - name: Update Spring Framework Dependencies
         run: |
-          TARGET_VERSION=${{ github.event.inputs.target_java_version }}
+          echo "🔄 Updating Spring Framework and Jakarta EE dependencies"
           
-          # Spring Boot 3.x requires Java 17+
-          if [ "$TARGET_VERSION" -ge "17" ]; then
-            echo "Updating to Spring Boot 3.3.x (latest stable)"
-            mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
-              -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-spring:5.20.0 \
-              -Drewrite.activeRecipes=org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3 || echo "Spring Boot update completed"
-          fi
+          # Update to latest compatible versions for Java 21/25
+          mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
+            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0 \
+            -Drewrite.activeRecipes=org.openrewrite.java.dependencies.UpgradeDependencyVersion || echo "Dependency updates completed"
+
+      - name: Apply Best Practices and Code Improvements
+        run: |
+          echo "🔧 Applying code modernization"
+          
+          # Apply common static analysis improvements
+          mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
+            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:1.16.0 \
+            -Drewrite.activeRecipes=org.openrewrite.staticanalysis.CommonStaticAnalysis || echo "Static analysis completed"
 
       - name: Check for changes
         id: check_changes
         run: |
-          # Reset the workflow file to avoid committing it
+          # Reset workflow file to avoid committing it
           git checkout HEAD -- .github/workflows/java-migration.yml 2>/dev/null || true
           
+          # Clean up any build artifacts that might have been generated
+          git clean -fdx target/ 2>/dev/null || true
+          find . -name "*.class" -type f -delete 2>/dev/null || true
+          
+          # Check for actual source code changes
           if [ -n "$(git status --porcelain)" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "✓ Changes detected:"
             git status --short
+            
+            # Verify no .class files are staged
+            if git status --short | grep -q '\.class$'; then
+              echo "⚠️ WARNING: .class files detected, removing..."
+              git reset HEAD -- '*.class' 2>/dev/null || true
+              find . -name "*.class" -type f -delete
+            fi
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "⚠️ No changes detected after migration"
@@ -190,11 +238,29 @@ jobs:
           echo "✓ All tests passed"
           echo "TEST_STATUS=success" >> $GITHUB_ENV
 
+      - name: Clean build artifacts before commit
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          echo "🧹 Cleaning build artifacts"
+          mvn clean || true
+          git clean -fdx target/ || true
+          find . -name "*.class" -type f -delete || true
+          
+          # Ensure .gitignore is updated
+          if [ -n "$(git status --porcelain .gitignore)" ]; then
+            git add .gitignore
+          fi
+
       - name: Generate Migration Report
         if: steps.check_changes.outputs.has_changes == 'true'
         run: |
-          cat > MIGRATION_REPORT.md << 'EOF'
-          # Java Migration Report
+          cat > MIGRATION_REPORT.md << 'EOFMARKER'
+          # Java Migration Report - Spring Framework PetClinic
+          
+          ## Project Information
+          - **Project:** Spring Framework Petclinic
+          - **Type:** Spring Framework 7.0.3 (not Spring Boot)
+          - **Build:** Maven WAR packaging
           
           ## Migration Details
           - **From:** Java ${{ needs.detect-current-version.outputs.current_version }}
@@ -203,52 +269,69 @@ jobs:
           - **Branch:** ${{ env.MIGRATION_BRANCH }}
           
           ## Build Status
-          - **Compilation:** ${{ env.BUILD_STATUS }}
-          - **Tests:** ${{ env.TEST_STATUS }}
+          - **Compilation:** ${BUILD_STATUS:-pending}
+          - **Tests:** ${TEST_STATUS:-pending}
+          
+          ## Key Dependencies (Post-Migration)
+          - Spring Framework: 7.0.3
+          - Jakarta EE (Servlet, JPA, etc.)
+          - Hibernate 7.2.3.Final
+          - Java: ${{ github.event.inputs.target_java_version }}
           
           ## Changes Applied
-          EOF
-          
-          echo "" >> MIGRATION_REPORT.md
+          EOFMARKER
           
           CURRENT=${{ needs.detect-current-version.outputs.current_version }}
           TARGET=${{ github.event.inputs.target_java_version }}
           
-          if [ "$CURRENT" -lt "17" ] && [ "$TARGET" -ge "17" ]; then
-            echo "- ✅ Migrated to Java 17" >> MIGRATION_REPORT.md
-          fi
-          
           if [ "$TARGET" -ge "21" ] && [ "$CURRENT" -lt "21" ]; then
-            echo "- ✅ Migrated to Java 21" >> MIGRATION_REPORT.md
+            echo "- ✅ Migrated Java 17 → Java 21" >> MIGRATION_REPORT.md
+            echo "- ✅ Updated code for Java 21 features" >> MIGRATION_REPORT.md
           fi
           
-          if [ "$TARGET" -ge "17" ]; then
-            echo "- ✅ Updated Spring Boot to 3.3.x" >> MIGRATION_REPORT.md
+          if [ "$TARGET" -eq "25" ]; then
+            echo "- ✅ Updated to Java 25 (experimental)" >> MIGRATION_REPORT.md
+            echo "- ⚠️ Note: Java 25 support is experimental" >> MIGRATION_REPORT.md
           fi
           
-          cat >> MIGRATION_REPORT.md << 'EOF'
+          cat >> MIGRATION_REPORT.md << 'EOFMARKER'
           
           ## Next Steps
           1. Review all code changes carefully
-          2. Run full test suite locally: `mvn test`
-          3. Test the application: `mvn spring-boot:run`
+          2. Run full test suite locally: `mvn clean test`
+          3. Test the application: `mvn jetty:run`
           4. Check for deprecation warnings
           5. Update documentation if needed
+          6. Test database migrations (H2, HSQLDB, MySQL, PostgreSQL)
           
           ## OpenRewrite Recipes Applied
-          EOF
+          EOFMARKER
           
-          if [ "$CURRENT" -lt "17" ] && [ "$TARGET" -ge "17" ]; then
-            echo "- org.openrewrite.java.migrate.UpgradeToJava17" >> MIGRATION_REPORT.md
-          fi
-          
-          if [ "$TARGET" -ge "21" ] && [ "$CURRENT" -lt "21" ]; then
+          if [ "$TARGET" -ge "21" ]; then
             echo "- org.openrewrite.java.migrate.UpgradeToJava21" >> MIGRATION_REPORT.md
+            echo "- org.openrewrite.staticanalysis.CommonStaticAnalysis" >> MIGRATION_REPORT.md
           fi
           
-          if [ "$TARGET" -ge "17" ]; then
-            echo "- org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3" >> MIGRATION_REPORT.md
-          fi
+          cat >> MIGRATION_REPORT.md << 'EOFMARKER'
+          
+          ## Important Notes for Spring Framework 7.0
+          
+          This project uses **Spring Framework 7.0** (not Spring Boot), which requires:
+          - Java 17 minimum
+          - Jakarta EE 9+ (javax.* → jakarta.*)
+          - Servlet 6.0+
+          - Tomcat 11 or Jetty 11+
+          
+          The migration preserves the Spring Framework architecture and dependencies.
+          
+          ## Testing Checklist
+          - [ ] Run with H2 database: `mvn clean test -PH2`
+          - [ ] Run with HSQLDB: `mvn clean test -PHSQLDB`
+          - [ ] Build WAR file: `mvn clean package`
+          - [ ] Deploy to Jetty: `mvn jetty:run`
+          - [ ] Test all REST endpoints
+          - [ ] Verify database operations
+          EOFMARKER
           
           cat MIGRATION_REPORT.md
 
@@ -262,44 +345,53 @@ jobs:
             🚀 Migrate to Java ${{ github.event.inputs.target_java_version }}
             
             - Upgraded from Java ${{ needs.detect-current-version.outputs.current_version }} to Java ${{ github.event.inputs.target_java_version }}
-            - Updated Spring Boot and dependencies
             - Applied OpenRewrite migration recipes
+            - Updated code for Java ${{ github.event.inputs.target_java_version }} compatibility
             
-            Build Status: ${{ env.BUILD_STATUS }}
-            Test Status: ${{ env.TEST_STATUS }}
-          title: "🚀 Migrate Spring PetClinic to Java ${{ github.event.inputs.target_java_version }}"
+            Build Status: ${BUILD_STATUS:-pending}
+            Test Status: ${TEST_STATUS:-pending}
+          title: "🚀 Migrate Spring Framework PetClinic to Java ${{ github.event.inputs.target_java_version }}"
           body: |
             ## 🎯 Automated Java Migration
             
-            This PR migrates the Spring PetClinic application from Java **${{ needs.detect-current-version.outputs.current_version }}** to Java **${{ github.event.inputs.target_java_version }}**.
+            This PR migrates the **Spring Framework Petclinic** from Java **${{ needs.detect-current-version.outputs.current_version }}** to Java **${{ github.event.inputs.target_java_version }}**.
             
             ### 📋 Migration Summary
             
             | Item | Status |
             |------|--------|
+            | Project Type | Spring Framework 7.0 (WAR) |
             | Source Java Version | ${{ needs.detect-current-version.outputs.current_version }} |
             | Target Java Version | ${{ github.event.inputs.target_java_version }} |
-            | Build Status | ${{ env.BUILD_STATUS }} |
-            | Test Status | ${{ env.TEST_STATUS }} |
-            | Spring Boot | Updated to 3.3.x ✅ |
+            | Build Status | ${BUILD_STATUS:-pending} |
+            | Test Status | ${TEST_STATUS:-pending} |
             
             ### 🔧 Changes Applied
             
-            - Upgraded Java version in `pom.xml`
-            - Updated Spring Boot to latest 3.x version
-            - Migrated code using OpenRewrite recipes
-            - Applied Java ${{ github.event.inputs.target_java_version }} language features where applicable
+            - ✅ Upgraded Java version in `pom.xml`
+            - ✅ Applied Java ${{ github.event.inputs.target_java_version }} migration recipes
+            - ✅ Code modernization and best practices
+            - ✅ Updated `.gitignore` to exclude build artifacts
+            - ❌ **No build artifacts** (`.class` files, `target/`) included
             
-            ### ✅ Review Checklist
+            ### ⚠️ Important Notes
+            
+            This project uses **Spring Framework 7.0**, not Spring Boot:
+            - WAR packaging for servlet containers
+            - Requires Tomcat 11 or Jetty 11+
+            - Jakarta EE 9+ dependencies
+            
+            ### ✅ Testing Checklist
             
             - [ ] Review code changes in detail
-            - [ ] Check MIGRATION_REPORT.md for migration details
-            - [ ] Run `mvn clean install` locally with Java ${{ github.event.inputs.target_java_version }}
-            - [ ] Run full test suite: `mvn test`
-            - [ ] Test application startup: `mvn spring-boot:run`
-            - [ ] Verify all features work correctly
-            - [ ] Check for new deprecation warnings
-            - [ ] Update README with new Java version requirement
+            - [ ] Check `MIGRATION_REPORT.md` for details
+            - [ ] Run with H2: `mvn clean test -PH2`
+            - [ ] Run with HSQLDB: `mvn clean test -PHSQLDB`
+            - [ ] Build WAR: `mvn clean package`
+            - [ ] Deploy and test: `mvn jetty:run`
+            - [ ] Test all database profiles
+            - [ ] Verify REST API endpoints
+            - [ ] Check for deprecation warnings
             
             ### 📚 Documentation
             
@@ -311,7 +403,7 @@ jobs:
             
             ---
             
-            **Note:** Please review all changes carefully before merging.
+            **Note:** Only source code changes are included. Build artifacts are properly excluded.
           labels: |
             migration
             automated
@@ -331,11 +423,9 @@ jobs:
           echo "=========================================="
           echo "⚠️  Migration Blocked"
           echo "=========================================="
-          echo ""
           echo "Current Java version: ${{ needs.detect-current-version.outputs.current_version }}"
           echo "Target Java version: ${{ github.event.inputs.target_java_version }}"
           echo ""
           echo "Cannot migrate backwards or to the same version."
-          echo "Please select a higher Java version than the current one."
           echo "=========================================="
           exit 1

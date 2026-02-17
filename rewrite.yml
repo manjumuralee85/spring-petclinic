@@ -1,100 +1,141 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.JavaMigration
-displayName: Spring PetClinic Java Migration
-description: Complete migration recipe for Spring PetClinic from Java 8 to modern versions
+name: com.petclinic.framework.JavaMigrationToJava21
+displayName: Spring Framework PetClinic Java 21 Migration
+description: Complete migration for Spring Framework PetClinic from Java 17 to Java 21
 recipeList:
-  - org.openrewrite.java.migrate.Java8toJava11
-  - org.openrewrite.java.migrate.UpgradeToJava17
+  # Core Java 21 migration
   - org.openrewrite.java.migrate.UpgradeToJava21
-  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.JavaMigrationToJava11
-displayName: Spring PetClinic Java 11 Migration
-description: Migrate Spring PetClinic from Java 8 to Java 11
-recipeList:
-  - org.openrewrite.java.migrate.Java8toJava11
-  - org.openrewrite.java.migrate.javax.AddJaxbDependencies
-  - org.openrewrite.java.migrate.javax.AddJaxbRuntime
+  
+  # Jakarta EE migrations (this project uses Jakarta, not javax)
+  - org.openrewrite.java.migrate.jakarta.JavaxMigrationToJakarta
+  
+  # Remove deprecated APIs
   - org.openrewrite.java.migrate.RemovedLegacyApis
-  - org.openrewrite.java.spring.boot2.UpgradeSpringBoot_2_7
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.JavaMigrationToJava17
-displayName: Spring PetClinic Java 17 Migration
-description: Migrate Spring PetClinic to Java 17 (assumes already on Java 11)
-recipeList:
-  - org.openrewrite.java.migrate.UpgradeToJava17
-  - org.openrewrite.java.migrate.javax.JavaxMigrationToJakarta
-  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2
-  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_0
-  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_1
-  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_2
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.JavaMigrationToJava21
-displayName: Spring PetClinic Java 21 Migration
-description: Migrate Spring PetClinic to Java 21 (assumes already on Java 17)
-recipeList:
-  - org.openrewrite.java.migrate.UpgradeToJava21
-  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3
-  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_3
-  - org.openrewrite.staticanalysis.CommonStaticAnalysis
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.DependencyUpgrade
-displayName: Upgrade Spring PetClinic Dependencies
-description: Update all dependencies to latest compatible versions
-recipeList:
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.springframework.boot
-      artifactId: spring-boot-starter-parent
-      newVersion: 3.3.x
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.webjars
-      artifactId: bootstrap
-      newVersion: 5.3.x
-  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
-      groupId: org.webjars.npm
-      artifactId: bootstrap
-      newVersion: 5.3.x
-  - org.openrewrite.maven.UpgradePluginVersion:
-      groupId: org.apache.maven.plugins
-      artifactId: maven-compiler-plugin
-      newVersion: 3.13.x
-  - org.openrewrite.maven.UpgradePluginVersion:
-      groupId: org.apache.maven.plugins
-      artifactId: maven-surefire-plugin
-      newVersion: 3.2.x
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.SecurityUpdates
-displayName: Apply Security Updates
-description: Apply security-related updates and best practices
-recipeList:
-  - org.openrewrite.java.security.SecureTempFileCreation
-  - org.openrewrite.java.security.UseFilesCreateTempDirectory
-  - org.openrewrite.java.spring.security6.UpgradeSpringSecurity_6_3
-
----
-type: specs.openrewrite.org/v1beta/recipe
-name: com.petclinic.CodeModernization
-displayName: Modernize Code Style
-description: Apply modern Java code patterns and best practices
-recipeList:
-  - org.openrewrite.java.cleanup.Cleanup
-  - org.openrewrite.java.format.AutoFormat
-  - org.openrewrite.java.migrate.UseJavaUtilBase64
+  
+  # Use newer Java features
+  - org.openrewrite.java.migrate.lang.UseTextBlocks
   - org.openrewrite.java.migrate.lang.UseVar
+  
+  # Code cleanup and modernization
   - org.openrewrite.staticanalysis.CommonStaticAnalysis
   - org.openrewrite.staticanalysis.DefaultComesLast
   - org.openrewrite.staticanalysis.EmptyBlock
   - org.openrewrite.staticanalysis.FinalizePrivateFields
   - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables
   - org.openrewrite.staticanalysis.RemoveUnusedPrivateFields
+  - org.openrewrite.staticanalysis.UnnecessaryCloseInTryWithResources
+  
+  # Formatting
+  - org.openrewrite.java.format.AutoFormat
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.framework.UpdateDependencies
+displayName: Update Spring Framework PetClinic Dependencies
+description: Update dependencies to versions compatible with Java 21
+recipeList:
+  # Update Hibernate to latest 7.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.hibernate.orm
+      artifactId: "*"
+      newVersion: 7.2.x
+  
+  # Update Hibernate Validator
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.hibernate.validator
+      artifactId: hibernate-validator
+      newVersion: 9.1.x
+  
+  # Update SLF4J
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.slf4j
+      artifactId: "*"
+      newVersion: 2.0.x
+  
+  # Update Logback
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: ch.qos.logback
+      artifactId: "*"
+      newVersion: 1.5.x
+  
+  # Update JUnit Jupiter
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.junit.jupiter
+      artifactId: "*"
+      newVersion: 6.0.x
+  
+  # Update Mockito
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: "*"
+      newVersion: 5.x
+  
+  # Update AssertJ
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.assertj
+      artifactId: "*"
+      newVersion: 3.27.x
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.framework.HibernateUpdates
+displayName: Hibernate 7.x Migration
+description: Migrate to Hibernate 7.x for Java 21 compatibility
+recipeList:
+  # Hibernate-specific migrations
+  - org.openrewrite.java.migrate.jakarta.JakartaEE10
+  
+  # Update deprecated Hibernate APIs
+  - org.openrewrite.java.migrate.UpgradeToJava21
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.framework.ServletUpdates
+displayName: Servlet 6.x Updates
+description: Update for Servlet 6.x (Jakarta EE 10)
+recipeList:
+  # Servlet API migrations
+  - org.openrewrite.java.migrate.jakarta.JavaxServletToJakartaServlet
+  
+  # JSP and JSTL migrations
+  - org.openrewrite.java.migrate.jakarta.JavaxPersistenceToJakartaPersistence
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.framework.TestingUpdates
+displayName: Update Testing Framework
+description: Update JUnit and testing dependencies
+recipeList:
+  # JUnit 5 best practices
+  - org.openrewrite.java.testing.junit5.JUnit5BestPractices
+  - org.openrewrite.java.testing.junit5.AssertToAssertions
+  - org.openrewrite.java.testing.junit5.ExpectedExceptionToAssertThrows
+  
+  # Mockito updates
+  - org.openrewrite.java.testing.mockito.Mockito1to5Migration
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.framework.SpringFrameworkUpdates
+displayName: Spring Framework 7.x Best Practices
+description: Apply Spring Framework 7.x best practices
+recipeList:
+  # Use modern Spring patterns
+  - org.openrewrite.java.spring.framework.MigrateWebMvcConfigurer
+  
+  # Update Spring annotations
+  - org.openrewrite.java.spring.framework.UpgradeSpringFramework_7_0
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.framework.CompleteMigration
+displayName: Complete Spring Framework PetClinic Migration
+description: Run all migration recipes for complete Java 21 migration
+recipeList:
+  - com.petclinic.framework.JavaMigrationToJava21
+  - com.petclinic.framework.UpdateDependencies
+  - com.petclinic.framework.HibernateUpdates
+  - com.petclinic.framework.ServletUpdates
+  - com.petclinic.framework.TestingUpdates
+  - com.petclinic.framework.SpringFrameworkUpdates
