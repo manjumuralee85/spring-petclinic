@@ -1,0 +1,100 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.JavaMigration
+displayName: Spring PetClinic Java Migration
+description: Complete migration recipe for Spring PetClinic from Java 8 to modern versions
+recipeList:
+  - org.openrewrite.java.migrate.Java8toJava11
+  - org.openrewrite.java.migrate.UpgradeToJava17
+  - org.openrewrite.java.migrate.UpgradeToJava21
+  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.JavaMigrationToJava11
+displayName: Spring PetClinic Java 11 Migration
+description: Migrate Spring PetClinic from Java 8 to Java 11
+recipeList:
+  - org.openrewrite.java.migrate.Java8toJava11
+  - org.openrewrite.java.migrate.javax.AddJaxbDependencies
+  - org.openrewrite.java.migrate.javax.AddJaxbRuntime
+  - org.openrewrite.java.migrate.RemovedLegacyApis
+  - org.openrewrite.java.spring.boot2.UpgradeSpringBoot_2_7
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.JavaMigrationToJava17
+displayName: Spring PetClinic Java 17 Migration
+description: Migrate Spring PetClinic to Java 17 (assumes already on Java 11)
+recipeList:
+  - org.openrewrite.java.migrate.UpgradeToJava17
+  - org.openrewrite.java.migrate.javax.JavaxMigrationToJakarta
+  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2
+  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_0
+  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_1
+  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_2
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.JavaMigrationToJava21
+displayName: Spring PetClinic Java 21 Migration
+description: Migrate Spring PetClinic to Java 21 (assumes already on Java 17)
+recipeList:
+  - org.openrewrite.java.migrate.UpgradeToJava21
+  - org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3
+  - org.openrewrite.java.spring.boot3.SpringBootProperties_3_3
+  - org.openrewrite.staticanalysis.CommonStaticAnalysis
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.DependencyUpgrade
+displayName: Upgrade Spring PetClinic Dependencies
+description: Update all dependencies to latest compatible versions
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-parent
+      newVersion: 3.3.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.webjars
+      artifactId: bootstrap
+      newVersion: 5.3.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.webjars.npm
+      artifactId: bootstrap
+      newVersion: 5.3.x
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-compiler-plugin
+      newVersion: 3.13.x
+  - org.openrewrite.maven.UpgradePluginVersion:
+      groupId: org.apache.maven.plugins
+      artifactId: maven-surefire-plugin
+      newVersion: 3.2.x
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.SecurityUpdates
+displayName: Apply Security Updates
+description: Apply security-related updates and best practices
+recipeList:
+  - org.openrewrite.java.security.SecureTempFileCreation
+  - org.openrewrite.java.security.UseFilesCreateTempDirectory
+  - org.openrewrite.java.spring.security6.UpgradeSpringSecurity_6_3
+
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.CodeModernization
+displayName: Modernize Code Style
+description: Apply modern Java code patterns and best practices
+recipeList:
+  - org.openrewrite.java.cleanup.Cleanup
+  - org.openrewrite.java.format.AutoFormat
+  - org.openrewrite.java.migrate.UseJavaUtilBase64
+  - org.openrewrite.java.migrate.lang.UseVar
+  - org.openrewrite.staticanalysis.CommonStaticAnalysis
+  - org.openrewrite.staticanalysis.DefaultComesLast
+  - org.openrewrite.staticanalysis.EmptyBlock
+  - org.openrewrite.staticanalysis.FinalizePrivateFields
+  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables
+  - org.openrewrite.staticanalysis.RemoveUnusedPrivateFields
