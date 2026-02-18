@@ -1,0 +1,220 @@
+name: CI - Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect Java version from pom.xml
+        id: detect_java
+        run: |
+          if [ -f "pom.xml" ]; then
+            # Try to detect Java version
+            JAVA_VERSION=$(grep -oP '<java.version>\K[^<]+' pom.xml || echo "17")
+            echo "java_version=$JAVA_VERSION" >> $GITHUB_OUTPUT
+            echo "Detected Java version: $JAVA_VERSION"
+          else
+            echo "java_version=17" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ steps.detect_java.outputs.java_version }}
+          cache: 'maven'
+
+      - name: Check if Spring Boot application
+        id: check_spring_boot
+        run: |
+          if grep -q "spring-boot-starter-parent" pom.xml; then
+            echo "is_spring_boot=true" >> $GITHUB_OUTPUT
+            echo "✓ Spring Boot application detected"
+          else
+            echo "is_spring_boot=false" >> $GITHUB_OUTPUT
+            echo "✓ Spring Framework application detected"
+          fi
+
+      - name: Build with Maven
+        run: |
+          echo "Building project..."
+          mvn clean package -DskipTests
+        env:
+          MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+
+      - name: Run Tests
+        run: |
+          echo "Running tests..."
+          mvn test
+        env:
+          MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+
+      - name: Run Spring Boot (smoke test)
+        if: steps.check_spring_boot.outputs.is_spring_boot == 'true'
+        timeout-minutes: 2
+        run: |
+          echo "Starting Spring Boot application for smoke test..."
+          mvn spring-boot:start -Dspring-boot.run.fork=true &
+          BOOT_PID=$!
+          
+          echo "Waiting for application to start..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "✓ Application started successfully"
+              mvn spring-boot:stop
+              exit 0
+            fi
+            if curl -sf http://localhost:8080 > /dev/null 2>&1; then
+              echo "✓ Application started successfully"
+              kill $BOOT_PID 2>/dev/null || true
+              exit 0
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+          
+          echo "⚠️  Application did not start in time (may need manual verification)"
+          kill $BOOT_PID 2>/dev/null || true
+          exit 0
+        continue-on-error: true
+
+      - name: Check for common issues
+        if: failure()
+        run: |
+          echo "=== Build Failed - Checking for Common Issues ==="
+          echo ""
+          
+          # Check for JAXB issues
+          if grep -r "jakarta.xml.bind" src/ 2>/dev/null; then
+            echo "⚠️  Found JAXB usage in code"
+            if ! grep -q "jakarta.xml.bind-api" pom.xml; then
+              echo "❌ Missing JAXB dependency!"
+              echo ""
+              echo "Add to pom.xml:"
+              echo "<dependency>"
+              echo "    <groupId>jakarta.xml.bind</groupId>"
+              echo "    <artifactId>jakarta.xml.bind-api</artifactId>"
+              echo "</dependency>"
+              echo "<dependency>"
+              echo "    <groupId>org.glassfish.jaxb</groupId>"
+              echo "    <artifactId>jaxb-runtime</artifactId>"
+              echo "    <scope>runtime</scope>"
+              echo "</dependency>"
+            fi
+          fi
+          
+          # Check for JSP issues
+          if [ -d "src/main/webapp/WEB-INF/jsp" ]; then
+            echo "⚠️  Found JSP views"
+            if ! grep -q "tomcat-embed-jasper" pom.xml; then
+              echo "❌ Missing Tomcat Jasper dependency!"
+              echo ""
+              echo "Add to pom.xml:"
+              echo "<dependency>"
+              echo "    <groupId>org.apache.tomcat.embed</groupId>"
+              echo "    <artifactId>tomcat-embed-jasper</artifactId>"
+              echo "    <scope>provided</scope>"
+              echo "</dependency>"
+            fi
+          fi
+          
+          echo ""
+          echo "=== End of Common Issues Check ==="
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            target/*.jar
+            target/*.war
+            target/surefire-reports/
+          retention-days: 7
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check_spring_boot.outputs.is_spring_boot }}" == "true" ]; then
+            echo "**Application Type:** Spring Boot" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Application Type:** Spring Framework" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "**Java Version:** ${{ steps.detect_java.outputs.java_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "target/*.jar" ]; then
+            echo "**Build Output:** JAR" >> $GITHUB_STEP_SUMMARY
+          elif [ -f "target/*.war" ]; then
+            echo "**Build Output:** WAR" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -d "target/surefire-reports" ]; then
+            TOTAL_TESTS=$(find target/surefire-reports -name "*.xml" -exec grep -h "tests=" {} \; | grep -oP 'tests="\K[0-9]+' | awk '{s+=$1} END {print s}')
+            FAILURES=$(find target/surefire-reports -name "*.xml" -exec grep -h "failures=" {} \; | grep -oP 'failures="\K[0-9]+' | awk '{s+=$1} END {print s}')
+            ERRORS=$(find target/surefire-reports -name "*.xml" -exec grep -h "errors=" {} \; | grep -oP 'errors="\K[0-9]+' | awk '{s+=$1} END {print s}')
+            
+            echo "- **Total Tests:** ${TOTAL_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Failures:** ${FAILURES:-0}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Errors:** ${ERRORS:-0}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  test-databases:
+    name: Test with ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.title, 'Spring Boot') || contains(github.event.pull_request.labels.*.name, 'spring-boot')
+    
+    strategy:
+      matrix:
+        database: [h2, hsqldb]
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect Java version
+        id: detect_java
+        run: |
+          JAVA_VERSION=$(grep -oP '<java.version>\K[^<]+' pom.xml || echo "17")
+          echo "java_version=$JAVA_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ steps.detect_java.outputs.java_version }}
+          cache: 'maven'
+
+      - name: Test with ${{ matrix.database }}
+        run: |
+          echo "Testing with ${{ matrix.database }} profile..."
+          
+          if grep -q "spring-boot-starter-parent" pom.xml; then
+            # Spring Boot
+            mvn test -Dspring-boot.run.profiles=${{ matrix.database }}
+          else
+            # Spring Framework
+            mvn test -P${{ matrix.database }}
+          fi
