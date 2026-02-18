@@ -36,11 +36,15 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Clear cached OpenRewrite artifacts
+        run: |
+          rm -rf ~/.m2/repository/org/openrewrite || true
+
       - name: Run OpenRewrite migration recipes
         run: |
           set -euo pipefail
-          mvn -B -ntp -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
-            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0,org.openrewrite.recipe:rewrite-spring:5.12.0 \
+          mvn -B -ntp -U org.openrewrite.maven:rewrite-maven-plugin:6.29.0:run \
+            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:3.27.0,org.openrewrite.recipe:rewrite-spring:6.24.0 \
             -Drewrite.activeRecipes=com.petclinic.MigrateJava21AndSpringBoot,${{ github.event.inputs.spring_boot_recipe }} \
             -Drewrite.configLocation=.github/rewrite/migration-recipe.yml
 
