@@ -20,6 +20,21 @@ recipeList:
       newVersion: 7.2.x
       overrideManagedVersion: true
   - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.hibernate.validator
+      artifactId: hibernate-validator
+      newVersion: latest.release
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.eclipse.angus
+      artifactId: angus-activation
+      newVersion: latest.release
+      overrideManagedVersion: true
+  - org.openrewrite.maven.AddDependency:
+      groupId: org.eclipse.angus
+      artifactId: angus-activation
+      version: latest.release
+      scope: runtime
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
       groupId: ch.qos.logback
       artifactId: logback-classic
       newVersion: 1.5.x
