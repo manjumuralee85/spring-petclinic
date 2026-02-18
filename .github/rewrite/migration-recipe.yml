@@ -1,0 +1,31 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.petclinic.MigrateJava21AndSpringBoot
+displayName: Migrate Petclinic to Java 21 and Spring Boot
+description: Upgrade Java baseline and key dependencies to reduce known CVE exposure.
+recipeList:
+  - org.openrewrite.java.migrate.UpgradeToJava21
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: com.mysql
+      artifactId: mysql-connector-j
+      newVersion: 8.4.x
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.postgresql
+      artifactId: postgresql
+      newVersion: 42.7.x
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.hibernate.orm
+      artifactId: hibernate-core
+      newVersion: 7.2.x
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: ch.qos.logback
+      artifactId: logback-classic
+      newVersion: 1.5.x
+      overrideManagedVersion: true
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.webjars
+      artifactId: bootstrap
+      newVersion: 5.3.x
+      overrideManagedVersion: true

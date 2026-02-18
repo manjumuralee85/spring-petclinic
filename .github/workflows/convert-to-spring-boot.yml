@@ -3,683 +3,113 @@ name: Convert to Spring Boot
 on:
   workflow_dispatch:
     inputs:
-      spring_boot_version:
-        description: 'Target Spring Boot Version'
+      spring_boot_recipe:
+        description: "Target Spring Boot recipe"
         required: true
         type: choice
         options:
-          - '3.2.x'
-          - '3.3.x'
-          - '3.4.x'
-        default: '3.3.x'
-      java_version:
-        description: 'Java Version'
-        required: true
-        type: choice
-        options:
-          - '17'
-          - '21'
-        default: '21'
+          - "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2"
+          - "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3"
+          - "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_4"
+        default: "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3"
 
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
 
 jobs:
-  convert-to-spring-boot:
-    name: Convert to Spring Boot ${{ github.event.inputs.spring_boot_version }}
+  migrate-java21-springboot:
+    name: Migrate Java 21 + Spring Boot
     runs-on: ubuntu-latest
-    
     permissions:
       contents: write
       pull-requests: write
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 17 for OpenRewrite
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'maven'
+          distribution: temurin
+          java-version: "21"
+          cache: maven
 
-      - name: Set branch name
+      - name: Run OpenRewrite migration recipes
         run: |
-          BRANCH_NAME="spring-boot-conversion-$(date +%Y%m%d-%H%M%S)"
-          echo "CONVERSION_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
-          echo "Branch name: $BRANCH_NAME"
+          set -euo pipefail
+          mvn -B -ntp -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
+            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0,org.openrewrite.recipe:rewrite-spring:5.12.0 \
+            -Drewrite.activeRecipes=com.petclinic.MigrateJava21AndSpringBoot,${{ github.event.inputs.spring_boot_recipe }} \
+            -Drewrite.configLocation=.github/rewrite/migration-recipe.yml
 
-      - name: Create and checkout new branch
+      - name: Ensure Java version is 21 in pom.xml
         run: |
-          git checkout -b ${{ env.CONVERSION_BRANCH }}
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          set -euo pipefail
+          if grep -q "<java.version>" pom.xml; then
+            sed -i 's|<java.version>[^<]*</java.version>|<java.version>21</java.version>|' pom.xml
+          fi
 
-      - name: Update .gitignore
+      - name: Build (must pass)
         run: |
-          echo "🔧 Updating .gitignore to exclude build artifacts"
-          
-          # Create comprehensive .gitignore
-          cat >> .gitignore << 'EOF'
+          set -euo pipefail
+          mvn -B -ntp clean verify
 
-# Build artifacts - MUST be excluded from commits
-target/
-*.class
-*.jar
-*.war
-*.ear
-
-# Spring Boot specific
-.mvn/
-mvnw
-mvnw.cmd
-
-# Migration backup
-.migration-backup/
-
-# OpenRewrite
-.rewrite/
-rewrite.patch
-
-# IDE
-.idea/
-*.iml
-.classpath
-.project
-.settings/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Temporary files
-*.tmp
-*.bak
-*~
-EOF
-          
-          # Remove duplicates and sort
-          sort -u .gitignore -o .gitignore
-          
-          echo "✓ Updated .gitignore"
-
-      - name: Clean existing build artifacts
+      - name: CVE scan (must be zero)
         run: |
-          echo "🧹 Cleaning any existing build artifacts"
-          
-          # Remove target directory
-          rm -rf target/ || true
-          
-          # Remove any .class files
-          find . -name "*.class" -type f -delete || true
-          
-          # Remove any compiled artifacts
-          find . -name "*.jar" -type f ! -path "*/\.m2/*" -delete || true
-          find . -name "*.war" -type f ! -path "*/\.m2/*" -delete || true
-          
-          # Clean Maven
-          mvn clean || true
-          
-          echo "✓ Cleaned build artifacts"
+          set -euo pipefail
+          mvn -B -ntp -DskipTests \
+            org.owasp:dependency-check-maven:12.1.0:check \
+            -DfailBuildOnCVSS=0 \
+            -Dformats=HTML,JSON
 
-      - name: Display Conversion Plan
+      - name: Clean generated artifacts before PR
         run: |
-          echo "=========================================="
-          echo "Spring Framework → Spring Boot Conversion"
-          echo "=========================================="
-          echo "Current: Spring Framework 7.0.3 (WAR)"
-          echo "Target: Spring Boot ${{ github.event.inputs.spring_boot_version }} (JAR)"
-          echo "Java Version: ${{ github.event.inputs.java_version }}"
-          echo "=========================================="
+          set -euo pipefail
+          rm -rf target .rewrite rewrite.patch
 
-      - name: Create Spring Boot Main Application Class
+      - name: Check if migration produced commit-worthy changes
+        id: changes
         run: |
-          echo "🔄 Creating Spring Boot application class"
-          
-          mkdir -p src/main/java/org/springframework/samples/petclinic
-          
-          cat > src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java << 'EOF'
-package org.springframework.samples.petclinic;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
-
-/**
- * Spring Boot PetClinic Application
- * Converted from Spring Framework 7.0 to Spring Boot 3.x
- */
-@SpringBootApplication
-public class PetClinicApplication extends SpringBootServletInitializer {
-
-    public static void main(String[] args) {
-        SpringApplication.run(PetClinicApplication.class, args);
-    }
-
-    @Override
-    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-        return application.sources(PetClinicApplication.class);
-    }
-}
-EOF
-          
-          echo "✓ Created PetClinicApplication.java"
-
-      - name: Create application.properties
-        run: |
-          echo "🔄 Creating Spring Boot configuration"
-          
-          mkdir -p src/main/resources
-          
-          cat > src/main/resources/application.properties << 'EOF'
-# Spring Boot PetClinic Configuration
-
-# Application
-spring.application.name=petclinic
-
-# Database (H2 default)
-spring.datasource.url=jdbc:h2:mem:petclinic
-spring.datasource.username=sa
-spring.datasource.password=
-spring.datasource.driver-class-name=org.h2.Driver
-
-# JPA
-spring.jpa.database=H2
-spring.jpa.hibernate.ddl-auto=none
-spring.jpa.show-sql=false
-spring.jpa.open-in-view=true
-
-# Web/MVC
-spring.mvc.view.prefix=/WEB-INF/jsp/
-spring.mvc.view.suffix=.jsp
-server.port=8080
-
-# Logging
-logging.level.org.springframework=INFO
-logging.level.org.springframework.samples.petclinic=DEBUG
-
-# Cache
-spring.cache.type=caffeine
-spring.cache.caffeine.spec=maximumSize=500,expireAfterAccess=600s
-
-# Messages
-spring.messages.basename=messages/messages
-
-# Actuator
-management.endpoints.web.base-path=/actuator
-management.endpoints.web.exposure.include=health,info,metrics
-EOF
-          
-          # Create profile-specific configurations
-          cat > src/main/resources/application-h2.properties << 'EOF'
-spring.datasource.url=jdbc:h2:mem:petclinic
-spring.datasource.username=sa
-spring.datasource.password=
-spring.jpa.database=H2
-EOF
-
-          cat > src/main/resources/application-hsqldb.properties << 'EOF'
-spring.datasource.url=jdbc:hsqldb:mem:petclinic
-spring.datasource.username=sa
-spring.datasource.password=
-spring.jpa.database=HSQL
-EOF
-
-          cat > src/main/resources/application-mysql.properties << 'EOF'
-spring.datasource.url=jdbc:mysql://localhost:3306/petclinic?useUnicode=true
-spring.datasource.username=petclinic
-spring.datasource.password=petclinic
-spring.jpa.database=MYSQL
-EOF
-
-          cat > src/main/resources/application-postgresql.properties << 'EOF'
-spring.datasource.url=jdbc:postgresql://localhost:5432/petclinic
-spring.datasource.username=postgres
-spring.datasource.password=petclinic
-spring.jpa.database=POSTGRESQL
-EOF
-          
-          echo "✓ Created application properties files"
-
-      - name: Update POM.xml for Spring Boot
-        run: |
-          echo "🔄 Creating Spring Boot POM.xml"
-          
-          cat > pom.xml << 'EOFPOM'
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.6</version>
-        <relativePath/>
-    </parent>
-    
-    <groupId>org.springframework.samples</groupId>
-    <artifactId>spring-boot-petclinic</artifactId>
-    <version>7.0.3</version>
-    <name>Spring Boot Petclinic</name>
-    <description>Spring Boot version of the PetClinic application</description>
-    <packaging>jar</packaging>
-    
-    <properties>
-        <java.version>${{ github.event.inputs.java_version }}</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
-        <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
-    </properties>
-    
-    <dependencies>
-        <!-- Spring Boot Starters -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-cache</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        
-        <!-- JAXB for XML support (required for @XmlRootElement, @XmlElement) -->
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- JSP Support -->
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-jasper</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        
-        <dependency>
-            <groupId>jakarta.servlet.jsp.jstl</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.glassfish.web</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
-        </dependency>
-        
-        <!-- Cache -->
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-        </dependency>
-        
-        <!-- Webjars -->
-        <dependency>
-            <groupId>org.webjars</groupId>
-            <artifactId>bootstrap</artifactId>
-            <version>${webjars-bootstrap.version}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.webjars.npm</groupId>
-            <artifactId>font-awesome</artifactId>
-            <version>${webjars-font-awesome.version}</version>
-        </dependency>
-        
-        <!-- Database Drivers -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.hsqldb</groupId>
-            <artifactId>hsqldb</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- DevTools -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <optional>true</optional>
-        </dependency>
-        
-        <!-- Actuator -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-    
-    <build>
-        <finalName>petclinic</finalName>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-EOFPOM
-          
-          echo "✓ Created Spring Boot POM.xml with JAXB dependencies"
-
-      - name: Set up Target JDK for Build
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: ${{ github.event.inputs.java_version }}
-          cache: 'maven'
-
-      - name: Build with Spring Boot (MUST SUCCEED)
-        id: build
-        run: |
-          echo "🔨 Building Spring Boot application - MUST SUCCEED"
-          
-          # Clean first
-          mvn clean
-          
-          # Build - this MUST succeed
-          if mvn package -DskipTests; then
-            echo "✓ Build successful"
-            echo "build_status=success" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          if [ -n "$(git status --porcelain -- pom.xml src/main src/test)" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
           else
-            echo "❌ Build failed - PR will NOT be created"
-            echo "build_status=failed" >> $GITHUB_OUTPUT
-            exit 1
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run Tests (MUST SUCCEED)
-        id: test
-        run: |
-          echo "🧪 Running tests - MUST SUCCEED"
-          
-          if mvn test; then
-            echo "✓ Tests passed"
-            echo "test_status=success" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Tests failed - PR will NOT be created"
-            echo "test_status=failed" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
-      - name: Final Cleanup Before Commit
-        run: |
-          echo "🧹 Final cleanup - removing all build artifacts"
-          
-          # Remove target directory
-          rm -rf target/
-          
-          # Remove any .class files
-          find . -name "*.class" -type f -delete
-          
-          # Remove any build artifacts
-          find . -name "*.jar" -type f ! -path "*/\.m2/*" -delete
-          find . -name "*.war" -type f ! -path "*/\.m2/*" -delete
-          
-          # Verify cleanup
-          if [ -d "target" ]; then
-            echo "⚠️ Warning: target/ still exists!"
-            rm -rf target/
-          fi
-          
-          if find . -name "*.class" | grep -q .; then
-            echo "⚠️ Warning: .class files still exist!"
-            find . -name "*.class" -type f -delete
-          fi
-          
-          echo "✓ Final cleanup complete"
-
-      - name: Generate Conversion Report
-        run: |
-          cat > SPRING_BOOT_CONVERSION_REPORT.md << 'EOF'
-# Spring Framework → Spring Boot Conversion Report
-
-## Conversion Summary
-
-### Before
-- **Type:** Spring Framework 7.0.3  
-- **Packaging:** WAR
-- **Deployment:** External Container
-
-### After
-- **Type:** Spring Boot ${{ github.event.inputs.spring_boot_version }}
-- **Packaging:** JAR
-- **Deployment:** Embedded Tomcat
-- **Java:** ${{ github.event.inputs.java_version }}
-
-## Build Status
-- ✅ Compilation: SUCCESS
-- ✅ Tests: SUCCESS
-
-## Running the Application
-
-```bash
-# Build
-mvn clean package
-
-# Run
-java -jar target/petclinic.jar
-
-# Or
-mvn spring-boot:run
-
-# Access at: http://localhost:8080
-```
-
-## Testing
-
-```bash
-# All tests
-mvn test
-
-# With specific database
-mvn spring-boot:run -Dspring-boot.run.profiles=mysql
-```
-
-## Key Changes
-
-### POM.xml
-- ✅ Added Spring Boot parent
-- ✅ Converted to starters
-- ✅ Added JAXB dependencies (for XML support)
-- ✅ JAR packaging
-
-### Configuration
-- ✅ Created application.properties
-- ✅ Added database profiles
-- ✅ Removed XML configuration
-
-### Code
-- ✅ Created PetClinicApplication main class
-- ✅ Maintained all existing functionality
-
-## Next Steps
-
-1. Review changes
-2. Test locally: `mvn spring-boot:run`
-3. Verify all features work
-4. Merge when ready
-EOF
-
-      - name: Commit Changes (Only Source Code)
-        run: |
-          echo "📝 Committing changes - source code only"
-          
-          # Stage all changes
-          git add -A
-          
-          # Unstage any build artifacts that might have slipped through
-          git reset HEAD target/ 2>/dev/null || true
-          git reset HEAD -- '*.class' 2>/dev/null || true
-          git reset HEAD -- '*.jar' 2>/dev/null || true
-          git reset HEAD -- '*.war' 2>/dev/null || true
-          
-          # Verify what's being committed
-          echo "Files to be committed:"
-          git diff --cached --name-only
-          
-          # Check for build artifacts
-          if git diff --cached --name-only | grep -E '(target/|\.class$|\.jar$|\.war$)'; then
-            echo "❌ ERROR: Build artifacts detected in commit!"
-            echo "Removing them..."
-            git reset HEAD target/ 2>/dev/null || true
-            git reset HEAD -- '*.class' 2>/dev/null || true
-            git reset HEAD -- '*.jar' 2>/dev/null || true
-            git reset HEAD -- '*.war' 2>/dev/null || true
-          fi
-          
-          # Commit
-          if git diff --cached --quiet; then
-            echo "❌ No changes to commit"
-            exit 1
-          else
-            git commit -m "🚀 Convert to Spring Boot ${{ github.event.inputs.spring_boot_version }}
-
-- Converted from Spring Framework 7.0 to Spring Boot
-- Changed packaging: WAR → JAR
-- Added Spring Boot starters
-- Created PetClinicApplication main class
-- Migrated XML config → application.properties
-- Added JAXB dependencies for XML support
-- Updated to Java ${{ github.event.inputs.java_version }}
-
-Build: ✅ SUCCESS
-Tests: ✅ SUCCESS"
-            echo "✓ Changes committed"
-          fi
-
-      - name: Push Branch
-        run: |
-          echo "⬆️  Pushing branch to remote"
-          git push origin ${{ env.CONVERSION_BRANCH }}
-          echo "✓ Branch pushed"
-
-      - name: Create Pull Request
+      - name: Create Pull Request (only after successful migration/build/CVE checks)
+        if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.CONVERSION_BRANCH }}
-          title: "🚀 Convert to Spring Boot ${{ github.event.inputs.spring_boot_version }} [Build: ✅]"
+          branch: migration/java21-spring-boot-${{ github.run_id }}
+          delete-branch: true
+          commit-message: |
+            chore: migrate to Java 21 and Spring Boot
+            
+            - Applied OpenRewrite Java 21 + Spring Boot recipes
+            - Applied dependency upgrade recipe for CVE remediation
+            - Verified build and tests
+            - Enforced dependency-check CVE threshold: 0
+          title: "Migrate to Java 21 + Spring Boot (build and CVE checks passed)"
           body: |
-            ## ✅ Spring Boot Conversion - Build Successful
-            
-            This PR converts Spring Framework 7.0 to **Spring Boot ${{ github.event.inputs.spring_boot_version }}**.
-            
-            ### Build Status
-            | Check | Status |
-            |-------|--------|
-            | Compilation | ✅ SUCCESS |
-            | Tests | ✅ SUCCESS |
-            | Java Version | ${{ github.event.inputs.java_version }} |
-            
-            ### 🎯 Changes
-            
-            - ✅ **POM.xml**: Spring Boot parent + starters
-            - ✅ **JAXB**: Dependencies added for XML support
-            - ✅ **Main Class**: PetClinicApplication created
-            - ✅ **Configuration**: application.properties + profiles
-            - ✅ **Packaging**: WAR → JAR (embedded Tomcat)
-            
-            ### 🚀 Quick Start
-            
-            ```bash
-            # Checkout this PR
-            gh pr checkout ${{ github.event.number }}
-            
-            # Build
-            mvn clean package
-            
-            # Run
-            java -jar target/petclinic.jar
-            
-            # Or
-            mvn spring-boot:run
-            
-            # Access
-            open http://localhost:8080
-            ```
-            
-            ### 🧪 Testing
-            
-            ```bash
-            # All tests
-            mvn test
-            
-            # H2 database
-            mvn spring-boot:run -Dspring-boot.run.profiles=h2
-            
-            # MySQL
-            mvn spring-boot:run -Dspring-boot.run.profiles=mysql
-            ```
-            
-            ### ✅ Verification Checklist
-            
-            - [x] Build succeeds
-            - [x] All tests pass
-            - [ ] Application starts successfully
-            - [ ] All endpoints work
-            - [ ] Database connections work
-            - [ ] XML endpoints work (/vets.xml)
-            - [ ] JSP views render correctly
-            
-            ### 📚 Documentation
-            
-            See `SPRING_BOOT_CONVERSION_REPORT.md` for complete details.
-            
-            ---
-            
-            **Note:** This PR was created only after successful build and tests. ✅
+            Automated migration PR generated after:
+            - Java 21 migration
+            - Spring Boot migration
+            - Successful `mvn clean verify`
+            - OWASP dependency-check with `failBuildOnCVSS=0`
+
+            Included files are intentionally restricted to source/build files.
+            Excluded from PR: `target/**`, `.gitignore`, and `*.md`.
           labels: |
+            migration
+            java-21
             spring-boot
-            enhancement
+            security
             automated
-            build-success
-          draft: false
+          add-paths: |
+            pom.xml
+            src/main/**
+            src/test/**
