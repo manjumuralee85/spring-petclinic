@@ -39,7 +39,8 @@ jobs:
       - name: Convert pom.xml to Spring Boot
         run: |
           set -euo pipefail
-          cat > pom.xml << EOF
+          SPRING_BOOT_VERSION='${{ github.event.inputs.spring_boot_version }}'
+          cat > pom.xml << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xmlns="http://maven.apache.org/POM/4.0.0"
@@ -49,7 +50,7 @@ jobs:
               <parent>
                   <groupId>org.springframework.boot</groupId>
                   <artifactId>spring-boot-starter-parent</artifactId>
-                  <version>${{ github.event.inputs.spring_boot_version }}</version>
+                  <version>__SPRING_BOOT_VERSION__</version>
                   <relativePath/>
               </parent>
 
@@ -194,6 +195,7 @@ jobs:
               </build>
           </project>
           EOF
+          sed -i "s/__SPRING_BOOT_VERSION__/${SPRING_BOOT_VERSION}/g" pom.xml
 
       - name: Create Spring Boot application entrypoint
         run: |
