@@ -71,6 +71,10 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
+      - name: Clear cached OpenRewrite artifacts
+        run: |
+          rm -rf ~/.m2/repository/org/openrewrite || true
+
       - name: Set branch name
         run: |
           BRANCH_NAME="migration/java-${{ github.event.inputs.target_java_version }}-$(date +%Y%m%d-%H%M%S)"
@@ -139,8 +143,8 @@ jobs:
           # Java 17 to 21 migration
           if [ "$TARGET_VERSION" -ge "21" ] && [ "$CURRENT_VERSION" -lt "21" ]; then
             echo "Step 1: Migrating to Java 21"
-            mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
-              -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0 \
+            mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.29.0:run \
+              -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:3.27.0 \
               -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21 \
               -Drewrite.exportDatatables=true || echo "Java 21 migration completed with warnings"
           fi
@@ -166,8 +170,8 @@ jobs:
           echo "🔄 Updating Spring Framework and Jakarta EE dependencies"
           
           # Update to latest compatible versions for Java 21/25
-          mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
-            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:2.25.0 \
+          mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.29.0:run \
+            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-migrate-java:3.27.0 \
             -Drewrite.activeRecipes=org.openrewrite.java.dependencies.UpgradeDependencyVersion || echo "Dependency updates completed"
 
       - name: Apply Best Practices and Code Improvements
@@ -175,8 +179,8 @@ jobs:
           echo "🔧 Applying code modernization"
           
           # Apply common static analysis improvements
-          mvn -U org.openrewrite.maven:rewrite-maven-plugin:5.40.0:run \
-            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:1.16.0 \
+          mvn -U org.openrewrite.maven:rewrite-maven-plugin:6.29.0:run \
+            -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:2.6.0 \
             -Drewrite.activeRecipes=org.openrewrite.staticanalysis.CommonStaticAnalysis || echo "Static analysis completed"
 
       - name: Check for changes
