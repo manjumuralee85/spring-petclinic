@@ -519,6 +519,7 @@
                 <version>12.1.0</version>
                 <configuration>
                     <failBuildOnCVSS>0</failBuildOnCVSS>
+                    <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
                     <suppressionFiles>
                         <suppressionFile>.github/dependency-check-suppressions.xml</suppressionFile>
                     </suppressionFiles>

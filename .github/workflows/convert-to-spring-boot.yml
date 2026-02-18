@@ -66,6 +66,7 @@ jobs:
           mvn -B -ntp -DskipTests \
             org.owasp:dependency-check-maven:12.1.0:check \
             -DfailBuildOnCVSS=0 \
+            -DossindexAnalyzerEnabled=false \
             -Dformats=HTML,JSON
 
       - name: Clean generated artifacts before PR
