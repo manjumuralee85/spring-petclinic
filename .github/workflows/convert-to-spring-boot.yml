@@ -245,7 +245,13 @@ jobs:
       - name: Build (must pass)
         run: |
           set -euo pipefail
-          mvn -B -ntp clean verify
+          mvn -B -ntp clean verify \
+            -Ddb.script=h2 \
+            -Djpa.database=H2 \
+            -Djdbc.driverClassName=org.h2.Driver \
+            -Djdbc.url=jdbc:h2:mem:petclinic \
+            -Djdbc.username=sa \
+            -Djdbc.password=
 
       - name: CVE scan (must be zero)
         run: |
