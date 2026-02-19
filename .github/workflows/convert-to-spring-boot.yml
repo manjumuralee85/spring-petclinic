@@ -153,6 +153,11 @@ jobs:
                       <artifactId>tomcat-embed-core</artifactId>
                       <version>${tomcat-embed-core.version}</version>
                   </dependency>
+                  <dependency>
+                      <groupId>org.apache.tomcat.embed</groupId>
+                      <artifactId>tomcat-embed-websocket</artifactId>
+                      <version>${tomcat-embed-core.version}</version>
+                  </dependency>
 
                   <dependency>
                       <groupId>com.github.ben-manes.caffeine</groupId>
