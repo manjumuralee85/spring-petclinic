@@ -67,6 +67,10 @@ jobs:
                   <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
                   <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
                   <webjars-flatpickr.version>4.6.13</webjars-flatpickr.version>
+                  <angus-activation.version>2.0.4</angus-activation.version>
+                  <log4j2.version>2.25.2</log4j2.version>
+                  <postgresql.version>42.7.8</postgresql.version>
+                  <tomcat-embed-core.version>10.1.42</tomcat-embed-core.version>
               </properties>
 
               <dependencies>
@@ -134,16 +138,19 @@ jobs:
                   <dependency>
                       <groupId>org.eclipse.angus</groupId>
                       <artifactId>angus-activation</artifactId>
+                      <version>${angus-activation.version}</version>
                       <scope>runtime</scope>
                   </dependency>
                   <dependency>
                       <groupId>org.apache.logging.log4j</groupId>
                       <artifactId>log4j-api</artifactId>
+                      <version>${log4j2.version}</version>
                       <scope>runtime</scope>
                   </dependency>
                   <dependency>
                       <groupId>org.apache.tomcat.embed</groupId>
                       <artifactId>tomcat-embed-core</artifactId>
+                      <version>${tomcat-embed-core.version}</version>
                   </dependency>
 
                   <dependency>
@@ -185,6 +192,7 @@ jobs:
                   <dependency>
                       <groupId>org.postgresql</groupId>
                       <artifactId>postgresql</artifactId>
+                      <version>${postgresql.version}</version>
                       <scope>runtime</scope>
                   </dependency>
 
@@ -279,13 +287,13 @@ jobs:
           grep -q "<artifactId>jakarta.xml.bind-api</artifactId>" pom.xml
           grep -q "<artifactId>jaxb-runtime</artifactId>" pom.xml
 
-      - name: Upgrade known vulnerable dependencies to latest releases
+      - name: Validate CVE-sensitive versions are pinned
         run: |
           set -euo pipefail
-          mvn -B -ntp versions:use-latest-releases \
-            -Dincludes=org.eclipse.angus:angus-activation,org.apache.logging.log4j:log4j-api,org.postgresql:postgresql,org.apache.tomcat.embed:tomcat-embed-core \
-            -DgenerateBackupPoms=false \
-            -DallowMajorUpdates=true
+          grep -q "<angus-activation.version>2.0.4</angus-activation.version>" pom.xml
+          grep -q "<log4j2.version>2.25.2</log4j2.version>" pom.xml
+          grep -q "<postgresql.version>42.7.8</postgresql.version>" pom.xml
+          grep -q "<tomcat-embed-core.version>10.1.42</tomcat-embed-core.version>" pom.xml
 
       - name: Build (must pass)
         run: |
