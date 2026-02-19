@@ -257,6 +257,11 @@ jobs:
           # Legacy XML references a persistence unit, but no persistence.xml exists.
           # Keep package scanning and remove persistenceUnitName to avoid EMF init failures.
           sed -i '/persistenceUnitName/d' src/main/resources/spring/business-config.xml
+          # Legacy JPA repositories use constructor injection of EntityManager.
+          # Expose a shared EntityManager bean backed by entityManagerFactory.
+          if ! grep -q 'SharedEntityManagerBean' src/main/resources/spring/business-config.xml; then
+            perl -0777 -i -pe 's|(<bean id="entityManagerFactory" class="org\.springframework\.orm\.jpa\.LocalContainerEntityManagerFactoryBean"[\s\S]*?</bean>)|$1\n\n        <bean id="entityManager" class="org.springframework.orm.jpa.support.SharedEntityManagerBean"\n              p:entityManagerFactory-ref="entityManagerFactory"/>|s' src/main/resources/spring/business-config.xml
+          fi
 
       - name: Validate generated pom has XML namespace support dependencies
         run: |
