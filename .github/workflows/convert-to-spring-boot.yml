@@ -88,6 +88,10 @@ jobs:
                       <artifactId>spring-boot-starter-validation</artifactId>
                   </dependency>
                   <dependency>
+                      <groupId>org.springframework</groupId>
+                      <artifactId>spring-oxm</artifactId>
+                  </dependency>
+                  <dependency>
                       <groupId>org.springframework.boot</groupId>
                       <artifactId>spring-boot-starter-cache</artifactId>
                   </dependency>
@@ -253,6 +257,13 @@ jobs:
           # Legacy XML references a persistence unit, but no persistence.xml exists.
           # Keep package scanning and remove persistenceUnitName to avoid EMF init failures.
           sed -i '/persistenceUnitName/d' src/main/resources/spring/business-config.xml
+
+      - name: Validate generated pom has XML namespace support dependencies
+        run: |
+          set -euo pipefail
+          grep -q "<artifactId>spring-oxm</artifactId>" pom.xml
+          grep -q "<artifactId>jakarta.xml.bind-api</artifactId>" pom.xml
+          grep -q "<artifactId>jaxb-runtime</artifactId>" pom.xml
 
       - name: Build (must pass)
         run: |
