@@ -136,6 +136,15 @@ jobs:
                       <artifactId>angus-activation</artifactId>
                       <scope>runtime</scope>
                   </dependency>
+                  <dependency>
+                      <groupId>org.apache.logging.log4j</groupId>
+                      <artifactId>log4j-api</artifactId>
+                      <scope>runtime</scope>
+                  </dependency>
+                  <dependency>
+                      <groupId>org.apache.tomcat.embed</groupId>
+                      <artifactId>tomcat-embed-core</artifactId>
+                  </dependency>
 
                   <dependency>
                       <groupId>com.github.ben-manes.caffeine</groupId>
@@ -269,6 +278,14 @@ jobs:
           grep -q "<artifactId>spring-oxm</artifactId>" pom.xml
           grep -q "<artifactId>jakarta.xml.bind-api</artifactId>" pom.xml
           grep -q "<artifactId>jaxb-runtime</artifactId>" pom.xml
+
+      - name: Upgrade known vulnerable dependencies to latest releases
+        run: |
+          set -euo pipefail
+          mvn -B -ntp versions:use-latest-releases \
+            -Dincludes=org.eclipse.angus:angus-activation,org.apache.logging.log4j:log4j-api,org.postgresql:postgresql,org.apache.tomcat.embed:tomcat-embed-core \
+            -DgenerateBackupPoms=false \
+            -DallowMajorUpdates=true
 
       - name: Build (must pass)
         run: |
