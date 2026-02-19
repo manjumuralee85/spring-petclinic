@@ -79,6 +79,11 @@ jobs:
                       <artifactId>spring-boot-starter-data-jpa</artifactId>
                   </dependency>
                   <dependency>
+                      <groupId>org.apache.tomcat</groupId>
+                      <artifactId>tomcat-jdbc</artifactId>
+                      <scope>runtime</scope>
+                  </dependency>
+                  <dependency>
                       <groupId>org.springframework.boot</groupId>
                       <artifactId>spring-boot-starter-validation</artifactId>
                   </dependency>
@@ -241,6 +246,13 @@ jobs:
           spring.cache.caffeine.spec=maximumSize=500,expireAfterAccess=600s
           management.endpoints.web.exposure.include=health,info,metrics
           EOF
+
+      - name: Patch legacy XML configs for Boot compatibility
+        run: |
+          set -euo pipefail
+          # Legacy XML references a persistence unit, but no persistence.xml exists.
+          # Keep package scanning and remove persistenceUnitName to avoid EMF init failures.
+          sed -i '/persistenceUnitName/d' src/main/resources/spring/business-config.xml
 
       - name: Build (must pass)
         run: |
