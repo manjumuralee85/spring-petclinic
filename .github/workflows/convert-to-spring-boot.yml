@@ -67,7 +67,7 @@ jobs:
                   <webjars-bootstrap.version>5.3.8</webjars-bootstrap.version>
                   <webjars-font-awesome.version>4.7.0</webjars-font-awesome.version>
                   <webjars-flatpickr.version>4.6.13</webjars-flatpickr.version>
-                  <angus-activation.version>2.0.4</angus-activation.version>
+                  <angus-activation.version>2.0.3</angus-activation.version>
                   <log4j2.version>2.25.2</log4j2.version>
                   <postgresql.version>42.7.8</postgresql.version>
                   <tomcat-embed-core.version>10.1.42</tomcat-embed-core.version>
@@ -290,7 +290,7 @@ jobs:
       - name: Validate CVE-sensitive versions are pinned
         run: |
           set -euo pipefail
-          grep -q "<angus-activation.version>2.0.4</angus-activation.version>" pom.xml
+          grep -q "<angus-activation.version>2.0.3</angus-activation.version>" pom.xml
           grep -q "<log4j2.version>2.25.2</log4j2.version>" pom.xml
           grep -q "<postgresql.version>42.7.8</postgresql.version>" pom.xml
           grep -q "<tomcat-embed-core.version>10.1.42</tomcat-embed-core.version>" pom.xml

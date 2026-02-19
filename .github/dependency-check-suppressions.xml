@@ -9,4 +9,13 @@ False positive suppression:
     <packageUrl regex="true">^pkg:maven/org\.hibernate\.validator/hibernate-validator@.*$</packageUrl>
     <cve>CVE-2025-15104</cve>
   </suppress>
+  <suppress>
+    <notes><![CDATA[
+Temporary suppression:
+- Angus Activation CVE-2025-7962 currently has no newer resolvable version in Maven Central for this line.
+- Remove this suppression as soon as a patched release is published and adopted.
+]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.eclipse\.angus/angus-activation@.*$</packageUrl>
+    <cve>CVE-2025-7962</cve>
+  </suppress>
 </suppressions>
