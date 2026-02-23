@@ -1,0 +1,215 @@
+{
+  "build_tool": "maven",
+  "java_version": "17",
+  "spring_boot_version": null,
+  "dependencies": [
+    {
+      "groupId": "tools.jackson",
+      "artifactId": "jackson-bom",
+      "version": "3.0.4"
+    },
+    {
+      "groupId": "org.springframework.data",
+      "artifactId": "spring-data-bom",
+      "version": "2025.1.2"
+    },
+    {
+      "groupId": "jakarta.servlet",
+      "artifactId": "jakarta.servlet-api",
+      "version": "6.1.0"
+    },
+    {
+      "groupId": "org.apache.tomcat",
+      "artifactId": "tomcat-jasper-el",
+      "version": "11.0.18"
+    },
+    {
+      "groupId": "jakarta.servlet.jsp.jstl",
+      "artifactId": "jakarta.servlet.jsp.jstl-api",
+      "version": "3.0.2"
+    },
+    {
+      "groupId": "org.glassfish.web",
+      "artifactId": "jakarta.servlet.jsp.jstl",
+      "version": "3.0.1"
+    },
+    {
+      "groupId": "tools.jackson.core",
+      "artifactId": "jackson-core",
+      "version": "3.0.4"
+    },
+    {
+      "groupId": "tools.jackson.core",
+      "artifactId": "jackson-databind",
+      "version": "3.0.4"
+    },
+    {
+      "groupId": "com.jayway.jsonpath",
+      "artifactId": "json-path",
+      "version": "2.10.0"
+    },
+    {
+      "groupId": "org.springframework.data",
+      "artifactId": "spring-data-jpa",
+      "version": null
+    },
+    {
+      "groupId": "org.springframework",
+      "artifactId": "spring-jdbc",
+      "version": "7.0.3"
+    },
+    {
+      "groupId": "org.springframework",
+      "artifactId": "spring-orm",
+      "version": "7.0.3"
+    },
+    {
+      "groupId": "org.springframework",
+      "artifactId": "spring-webmvc",
+      "version": "7.0.3"
+    },
+    {
+      "groupId": "org.springframework",
+      "artifactId": "spring-context-support",
+      "version": "7.0.3"
+    },
+    {
+      "groupId": "org.springframework",
+      "artifactId": "spring-oxm",
+      "version": "7.0.3"
+    },
+    {
+      "groupId": "com.github.ben-manes.caffeine",
+      "artifactId": "caffeine",
+      "version": "3.2.3"
+    },
+    {
+      "groupId": "org.aspectj",
+      "artifactId": "aspectjweaver",
+      "version": "1.9.25.1"
+    },
+    {
+      "groupId": "org.apache.tomcat",
+      "artifactId": "tomcat-jdbc",
+      "version": "11.0.18"
+    },
+    {
+      "groupId": "org.slf4j",
+      "artifactId": "slf4j-api",
+      "version": "2.0.17"
+    },
+    {
+      "groupId": "ch.qos.logback",
+      "artifactId": "logback-classic",
+      "version": "1.5.27"
+    },
+    {
+      "groupId": "jakarta.persistence",
+      "artifactId": "jakarta.persistence-api",
+      "version": "3.2.0"
+    },
+    {
+      "groupId": "org.hibernate.orm",
+      "artifactId": "hibernate-core",
+      "version": "7.2.3.Final"
+    },
+    {
+      "groupId": "org.hibernate.validator",
+      "artifactId": "hibernate-validator",
+      "version": "9.1.0.Final"
+    },
+    {
+      "groupId": "org.hibernate.orm",
+      "artifactId": "hibernate-jcache",
+      "version": "7.2.3.Final"
+    },
+    {
+      "groupId": "org.webjars",
+      "artifactId": "bootstrap",
+      "version": "5.3.8"
+    },
+    {
+      "groupId": "org.webjars.npm",
+      "artifactId": "font-awesome",
+      "version": "4.7.0"
+    },
+    {
+      "groupId": "org.webjars.npm",
+      "artifactId": "flatpickr",
+      "version": "4.6.13"
+    },
+    {
+      "groupId": "org.springframework",
+      "artifactId": "spring-test",
+      "version": "7.0.3"
+    },
+    {
+      "groupId": "org.junit.jupiter",
+      "artifactId": "junit-jupiter-engine",
+      "version": "6.0.2"
+    },
+    {
+      "groupId": "org.assertj",
+      "artifactId": "assertj-core",
+      "version": "3.27.7"
+    },
+    {
+      "groupId": "org.mockito",
+      "artifactId": "mockito-core",
+      "version": "5.21.0"
+    },
+    {
+      "groupId": "org.mockito",
+      "artifactId": "mockito-junit-jupiter",
+      "version": "5.21.0"
+    },
+    {
+      "groupId": "org.hamcrest",
+      "artifactId": "hamcrest",
+      "version": "3.0"
+    },
+    {
+      "groupId": "jakarta.xml.bind",
+      "artifactId": "jakarta.xml.bind-api",
+      "version": "4.0.4"
+    },
+    {
+      "groupId": "org.glassfish.jaxb",
+      "artifactId": "jaxb-runtime",
+      "version": "4.0.6"
+    },
+    {
+      "groupId": "jakarta.activation",
+      "artifactId": "jakarta.activation-api",
+      "version": "2.1.4"
+    },
+    {
+      "groupId": "com.h2database",
+      "artifactId": "h2",
+      "version": "2.4.240"
+    },
+    {
+      "groupId": "org.hsqldb",
+      "artifactId": "hsqldb",
+      "version": "2.7.4"
+    },
+    {
+      "groupId": "mysql",
+      "artifactId": "mysql-connector-java",
+      "version": "8.1.0"
+    },
+    {
+      "groupId": "org.postgresql",
+      "artifactId": "postgresql",
+      "version": "42.7.9"
+    }
+  ],
+  "flags": {
+    "has_spring": true,
+    "has_spring_boot": false,
+    "has_dropwizard": false,
+    "has_jakarta": true,
+    "has_javax": true,
+    "has_log4j": false
+  }
+}
