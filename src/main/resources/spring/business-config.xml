@@ -46,9 +46,11 @@
                  -->
             </property>
             <!-- gDickens: BOTH Persistence Unit and Packages to Scan are NOT compatible, persistenceUnit will win -->
-            <property name="persistenceUnitName" value="petclinic"/>
             <property name="packagesToScan" value="org.springframework.samples.petclinic"/>
         </bean>
+
+        <bean id="entityManager" class="org.springframework.orm.jpa.support.SharedEntityManagerBean"
+              p:entityManagerFactory-ref="entityManagerFactory"/>
 
         <!-- Transaction manager for a single JPA EntityManagerFactory (alternative to JTA) -->
         <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager"
