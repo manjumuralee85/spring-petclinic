@@ -15,6 +15,7 @@
  */
 package org.springframework.samples.petclinic.repository.jdbc;
 
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -41,6 +42,7 @@ import java.util.List;
  * @author Mark Fisher
  * @author Antoine Rey
  */
+@DependsOnDatabaseInitialization
 @Repository
 public class JdbcPetRepositoryImpl implements PetRepository {
 
