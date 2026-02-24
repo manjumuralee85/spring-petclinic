@@ -62,8 +62,8 @@ class PetTests {
         List<Visit> visits = pet.getVisits();
 
         assertEquals(2, visits.size());
-        assertTrue(visits.get(0).getDate().isAfter(visits.get(1).getDate()) ||
-            visits.get(0).getDate().isEqual(visits.get(1).getDate()));
+        assertTrue(visits.getFirst().getDate().isAfter(visits.get(1).getDate()) ||
+            visits.getFirst().getDate().isEqual(visits.get(1).getDate()));
     }
 
     @Test
