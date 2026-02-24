@@ -15,6 +15,7 @@
  */
 package org.springframework.samples.petclinic.repository.jdbc;
 
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
@@ -36,6 +37,7 @@ import java.util.List;
  * @author Mark Fisher
  * @author Michael Isvy
  */
+@DependsOnDatabaseInitialization
 @Repository
 public class JdbcVisitRepositoryImpl implements VisitRepository {
 
