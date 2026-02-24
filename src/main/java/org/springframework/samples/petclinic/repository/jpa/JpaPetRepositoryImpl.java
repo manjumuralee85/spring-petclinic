@@ -18,6 +18,7 @@ package org.springframework.samples.petclinic.repository.jpa;
 import java.util.List;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import org.springframework.samples.petclinic.model.Pet;
 import org.springframework.samples.petclinic.model.PetType;
@@ -36,11 +37,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JpaPetRepositoryImpl implements PetRepository {
 
-    private final EntityManager em;
-
-    public JpaPetRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     @SuppressWarnings("unchecked")
