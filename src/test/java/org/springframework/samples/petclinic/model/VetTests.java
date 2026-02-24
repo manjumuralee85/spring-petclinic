@@ -61,7 +61,7 @@ class VetTests {
         List<Specialty> specialties = vet.getSpecialties();
 
         assertEquals(3, specialties.size());
-        assertEquals("dentistry", specialties.get(0).getName());
+        assertEquals("dentistry", specialties.getFirst().getName());
         assertEquals("radiology", specialties.get(1).getName());
         assertEquals("surgery", specialties.get(2).getName());
     }
