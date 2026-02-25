@@ -18,6 +18,7 @@ package org.springframework.samples.petclinic.repository.jpa;
 import java.util.Collection;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 import org.springframework.samples.petclinic.model.Owner;
@@ -36,11 +37,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JpaOwnerRepositoryImpl implements OwnerRepository {
 
-    private final EntityManager em;
-
-    public JpaOwnerRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     /**
      * Important: in the current version of this method, we load Owners with all their Pets and Visits while
