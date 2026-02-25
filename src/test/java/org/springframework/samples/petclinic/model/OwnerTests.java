@@ -35,7 +35,7 @@ class OwnerTests {
 
         // Then
         assertThat(pets).hasSize(3);
-        assertThat(pets.get(0).getName()).isEqualTo("Alpha");
+        assertThat(pets.getFirst().getName()).isEqualTo("Alpha");
         assertThat(pets.get(1).getName()).isEqualTo("Max");
         assertThat(pets.get(2).getName()).isEqualTo("Zephyr");
     }
@@ -91,7 +91,7 @@ class OwnerTests {
         // Then
         assertThat(pets).hasSize(3);
         // Case-insensitive sorting: Alpha < buddy < ZEPHYR
-        assertThat(pets.get(0).getName()).isEqualTo("Alpha");
+        assertThat(pets.getFirst().getName()).isEqualTo("Alpha");
         assertThat(pets.get(1).getName()).isEqualTo("buddy");
         assertThat(pets.get(2).getName()).isEqualTo("ZEPHYR");
     }

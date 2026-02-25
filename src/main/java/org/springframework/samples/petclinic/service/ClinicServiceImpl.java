@@ -28,6 +28,7 @@ import org.springframework.samples.petclinic.repository.PetRepository;
 import org.springframework.samples.petclinic.repository.VetRepository;
 import org.springframework.samples.petclinic.repository.VisitRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -39,12 +40,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ClinicServiceImpl implements ClinicService {
 
-    private final PetRepository petRepository;
-    private final VetRepository vetRepository;
-    private final OwnerRepository ownerRepository;
-    private final VisitRepository visitRepository;
+    private final @Qualifier("springDataPetRepository") PetRepository petRepository;
+    private final @Qualifier("springDataVetRepository") VetRepository vetRepository;
+    private final @Qualifier("springDataOwnerRepository") OwnerRepository ownerRepository;
+    private final @Qualifier("springDataVisitRepository") VisitRepository visitRepository;
 
-    public ClinicServiceImpl(PetRepository petRepository, VetRepository vetRepository, OwnerRepository ownerRepository, VisitRepository visitRepository) {
+    public ClinicServiceImpl(@Qualifier("springDataPetRepository") PetRepository petRepository, @Qualifier("springDataVetRepository") VetRepository vetRepository, @Qualifier("springDataOwnerRepository") OwnerRepository ownerRepository, @Qualifier("springDataVisitRepository") VisitRepository visitRepository) {
         this.petRepository = petRepository;
         this.vetRepository = vetRepository;
         this.ownerRepository = ownerRepository;
