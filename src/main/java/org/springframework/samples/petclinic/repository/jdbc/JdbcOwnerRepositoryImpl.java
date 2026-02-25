@@ -15,6 +15,9 @@
  */
 package org.springframework.samples.petclinic.repository.jdbc;
 
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
+import org.springframework.context.annotation.Profile;
+
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -28,6 +31,7 @@ import org.springframework.samples.petclinic.model.Visit;
 import org.springframework.samples.petclinic.repository.OwnerRepository;
 import org.springframework.samples.petclinic.util.EntityUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 import javax.sql.DataSource;
 import java.util.Collection;
@@ -44,7 +48,9 @@ import java.util.List;
  * @author Mark Fisher
  * @author Antoine Rey
  */
+@DependsOnDatabaseInitialization
 @Repository
+@Profile("jdbc")
 public class JdbcOwnerRepositoryImpl implements OwnerRepository {
 
     private final JdbcClient jdbcClient;
