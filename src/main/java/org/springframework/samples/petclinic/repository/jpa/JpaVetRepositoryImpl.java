@@ -15,11 +15,15 @@
  */
 package org.springframework.samples.petclinic.repository.jpa;
 
+import org.springframework.context.annotation.Profile;
+
 import org.springframework.samples.petclinic.model.Vet;
 import org.springframework.samples.petclinic.repository.VetRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.Collection;
 
 /**
@@ -32,13 +36,11 @@ import java.util.Collection;
  * @since 22.4.2006
  */
 @Repository
+@Profile("jpa")
 public class JpaVetRepositoryImpl implements VetRepository {
 
-    private final EntityManager em;
-
-    public JpaVetRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     @SuppressWarnings("unchecked")

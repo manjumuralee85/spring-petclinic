@@ -15,14 +15,18 @@
  */
 package org.springframework.samples.petclinic.repository.jpa;
 
+import org.springframework.context.annotation.Profile;
+
 import java.util.List;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import org.springframework.samples.petclinic.model.Pet;
 import org.springframework.samples.petclinic.model.PetType;
 import org.springframework.samples.petclinic.repository.PetRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 /**
  * JPA implementation of the {@link PetRepository} interface.
@@ -34,13 +38,11 @@ import org.springframework.stereotype.Repository;
  * @since 22.4.2006
  */
 @Repository
+@Profile("jpa")
 public class JpaPetRepositoryImpl implements PetRepository {
 
-    private final EntityManager em;
-
-    public JpaPetRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     @SuppressWarnings("unchecked")
