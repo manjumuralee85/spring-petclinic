@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.repository.jdbc;
 
+import org.springframework.context.annotation.Profile;
+
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.samples.petclinic.model.Specialty;
@@ -22,6 +24,7 @@ import org.springframework.samples.petclinic.model.Vet;
 import org.springframework.samples.petclinic.repository.VetRepository;
 import org.springframework.samples.petclinic.util.EntityUtils;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -42,6 +45,7 @@ import java.util.List;
  * @author Antoine Rey
  */
 @Repository
+@Profile("jdbc")
 public class JdbcVetRepositoryImpl implements VetRepository {
 
     private final JdbcClient jdbcClient;

@@ -15,14 +15,18 @@
  */
 package org.springframework.samples.petclinic.repository.jpa;
 
+import org.springframework.context.annotation.Profile;
+
 import java.util.List;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 import org.springframework.samples.petclinic.model.Visit;
 import org.springframework.samples.petclinic.repository.VisitRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 /**
  * JPA implementation of the ClinicService interface using EntityManager.
@@ -36,13 +40,11 @@ import org.springframework.stereotype.Repository;
  * @since 22.4.2006
  */
 @Repository
+@Profile("jpa")
 public class JpaVisitRepositoryImpl implements VisitRepository {
 
-    private final EntityManager em;
-
-    public JpaVisitRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     public void save(Visit visit) {
