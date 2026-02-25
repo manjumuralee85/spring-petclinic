@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.repository.jdbc;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -41,6 +43,7 @@ import java.util.List;
  * @author Mark Fisher
  * @author Antoine Rey
  */
+@DependsOnDatabaseInitialization
 @Repository
 public class JdbcPetRepositoryImpl implements PetRepository {
 
@@ -48,9 +51,9 @@ public class JdbcPetRepositoryImpl implements PetRepository {
 
     private final SimpleJdbcInsert insertPet;
 
-    private final OwnerRepository ownerRepository;
+    private final @Qualifier("jdbcOwnerRepositoryImpl") OwnerRepository ownerRepository;
 
-    public JdbcPetRepositoryImpl(JdbcClient jdbcClient, DataSource dataSource, OwnerRepository ownerRepository) {
+    public JdbcPetRepositoryImpl(JdbcClient jdbcClient, DataSource dataSource, @Qualifier("jdbcOwnerRepositoryImpl") OwnerRepository ownerRepository) {
         this.jdbcClient = jdbcClient;
 
         this.insertPet = new SimpleJdbcInsert(dataSource)

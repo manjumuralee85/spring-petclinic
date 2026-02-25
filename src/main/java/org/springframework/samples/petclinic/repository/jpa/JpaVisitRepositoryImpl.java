@@ -18,6 +18,7 @@ package org.springframework.samples.petclinic.repository.jpa;
 import java.util.List;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 import org.springframework.samples.petclinic.model.Visit;
@@ -38,11 +39,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class JpaVisitRepositoryImpl implements VisitRepository {
 
-    private final EntityManager em;
-
-    public JpaVisitRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @Override
     public void save(Visit visit) {
