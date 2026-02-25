@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.repository.springdatajpa;
 
+import org.springframework.context.annotation.Profile;
+
 import java.util.Collection;
 
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +31,7 @@ import org.springframework.samples.petclinic.repository.OwnerRepository;
  * @author Michael Isvy
  * @since 15.1.2013
  */
+@Profile("spring-data-jpa")
 public interface SpringDataOwnerRepository extends OwnerRepository, Repository<Owner, Integer> {
 
     @Override

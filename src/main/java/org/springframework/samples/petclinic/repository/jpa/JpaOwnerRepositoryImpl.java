@@ -15,14 +15,18 @@
  */
 package org.springframework.samples.petclinic.repository.jpa;
 
+import org.springframework.context.annotation.Profile;
+
 import java.util.Collection;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 import org.springframework.samples.petclinic.model.Owner;
 import org.springframework.samples.petclinic.repository.OwnerRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 /**
  * JPA implementation of the {@link OwnerRepository} interface.
@@ -34,13 +38,11 @@ import org.springframework.stereotype.Repository;
  * @since 22.4.2006
  */
 @Repository
+@Profile("jpa")
 public class JpaOwnerRepositoryImpl implements OwnerRepository {
 
-    private final EntityManager em;
-
-    public JpaOwnerRepositoryImpl(EntityManager em) {
-        this.em = em;
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     /**
      * Important: in the current version of this method, we load Owners with all their Pets and Visits while

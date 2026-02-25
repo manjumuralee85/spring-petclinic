@@ -15,12 +15,16 @@
  */
 package org.springframework.samples.petclinic.repository.jdbc;
 
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
+import org.springframework.context.annotation.Profile;
+
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.samples.petclinic.model.Visit;
 import org.springframework.samples.petclinic.repository.VisitRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Profile;
 
 import javax.sql.DataSource;
 import java.util.List;
@@ -36,7 +40,9 @@ import java.util.List;
  * @author Mark Fisher
  * @author Michael Isvy
  */
+@DependsOnDatabaseInitialization
 @Repository
+@Profile("jdbc")
 public class JdbcVisitRepositoryImpl implements VisitRepository {
 
     private final JdbcClient jdbcClient;
